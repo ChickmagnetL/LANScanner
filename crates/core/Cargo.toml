@@ -1,0 +1,11 @@
+[package]
+name = "lanscanner-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+ipnet.workspace = true
+russh.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true

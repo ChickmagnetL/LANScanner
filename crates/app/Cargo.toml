@@ -1,0 +1,27 @@
+[package]
+name = "lanscanner-app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+build = "build.rs"
+autobins = false
+default-run = "LANScanner"
+
+[[bin]]
+name = "LANScanner"
+path = "src/main.rs"
+
+[dependencies]
+iced.workspace = true
+image = { version = "0.25", default-features = false, features = ["png"] }
+platform = { path = "../platform", package = "lanscanner-platform" }
+ssh_core = { path = "../core", package = "lanscanner-core" }
+tokio.workspace = true
+tokio-util.workspace = true
+ui = { path = "../ui", package = "lanscanner-ui" }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows-sys = { version = "0.59", features = ["Win32_UI_Shell", "Win32_Graphics_Dwm"] }
+
+[build-dependencies]
+winresource = "0.1"

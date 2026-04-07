@@ -1,0 +1,15 @@
+/target/
+/.build-tools/
+/release/
+/.visual-check*/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+*:Zone.Identifier
+
+# Editor/project-local files
+.idea/
+.vscode/
+*.swp
+*.swo

@@ -1,0 +1,28 @@
+[workspace]
+members = [
+    "crates/app",
+    "crates/core",
+    "crates/platform",
+    "crates/ui",
+]
+resolver = "2"
+
+[workspace.package]
+edition = "2024"
+version = "0.1.0"
+license = "MIT"
+
+[workspace.dependencies]
+iced = { version = "0.14.0", features = ["image", "tokio", "svg"] }
+ipnet = "2.11"
+russh = { version = "0.57", default-features = false, features = ["flate2", "ring", "rsa"] }
+tokio = { version = "1", features = ["macros", "net", "process", "rt", "sync", "time"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+winreg = "0.10"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
