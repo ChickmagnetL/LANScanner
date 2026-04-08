@@ -626,6 +626,10 @@ impl ShellApp {
             Message::CloseHelpModal => update::modal::handle_close_help_modal(self),
             Message::ShowHelpGuideBasic => update::modal::handle_show_help_guide_basic(self),
             Message::ShowHelpGuideRustDesk => update::modal::handle_show_help_guide_rustdesk(self),
+            Message::OpenGitHub => {
+                open_url("https://github.com/ChickmagnetL/LANScanner");
+                Task::none()
+            }
             Message::OpenCredModal => update::modal::handle_open_cred_modal(self),
             Message::WindowReady(window_id) => update::window::handle_window_ready(self, window_id),
             Message::WindowResized(window_id) => {
@@ -964,5 +968,33 @@ impl Drop for ShellApp {
         if let Err(error) = key_mgmt::cleanup_external_temp_keys_on_shutdown() {
             eprintln!("[ERROR] cleanup external key temp dirs on shutdown failed: {error}");
         }
+    }
+}
+
+fn open_url(url: &str) {
+    #[cfg(target_os = "windows")]
+    {
+        use std::ffi::OsStr;
+        use std::os::windows::ffi::OsStrExt;
+        let url_wide: Vec<u16> = OsStr::new(url).encode_wide().chain(Some(0)).collect();
+        let verb: Vec<u16> = OsStr::new("open").encode_wide().chain(Some(0)).collect();
+        unsafe {
+            windows_sys::Win32::UI::Shell::ShellExecuteW(
+                std::ptr::null_mut(),
+                verb.as_ptr(),
+                url_wide.as_ptr(),
+                std::ptr::null(),
+                std::ptr::null(),
+                windows_sys::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL,
+            );
+        }
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let _ = std::process::Command::new("open").arg(url).spawn();
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let _ = std::process::Command::new("xdg-open").arg(url).spawn();
     }
 }

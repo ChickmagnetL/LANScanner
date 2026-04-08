@@ -52,6 +52,7 @@ const TERMINAL_ASSET: &[u8] = include_bytes!("../../../../icon/terminal.svg");
 const LOADER_ASSET: &[u8] = include_bytes!("../../../../icon/loader.svg");
 const LOADER_CIRCLE_ASSET: &[u8] = include_bytes!("../../../../icon/loader-circle.svg");
 const LOADER_PINWHEEL_ASSET: &[u8] = include_bytes!("../../../../icon/loader-pinwheel.svg");
+const GITHUB_ASSET: &[u8] = include_bytes!("../../../../icon/github.svg");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Glyph {
@@ -91,6 +92,7 @@ pub enum Glyph {
     Spinner2,
     Spinner3,
     Spinner4,
+    GitHub,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -539,5 +541,6 @@ fn glyph_bytes(kind: Glyph) -> &'static [u8] {
         Glyph::Spinner2 => LOADER_CIRCLE_ASSET,
         Glyph::Spinner3 => LOADER_PINWHEEL_ASSET,
         Glyph::Spinner4 => CIRCLE_DASHED_ASSET,
+        Glyph::GitHub => GITHUB_ASSET,
     }
 }

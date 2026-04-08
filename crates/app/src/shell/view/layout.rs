@@ -300,6 +300,7 @@ pub(super) fn view(app: &ShellApp) -> Element<'_, Message> {
                             shell,
                             ui::modals::help::view(ui::modals::help::HelpGuideProps {
                                 on_close: Message::CloseHelpModal,
+                                on_open_github: Message::OpenGitHub,
                                 show_rustdesk_section: app.help_modal_show_rustdesk,
                                 on_show_basic: Message::ShowHelpGuideBasic,
                                 on_show_rustdesk: Message::ShowHelpGuideRustDesk,

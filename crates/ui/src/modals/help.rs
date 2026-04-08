@@ -53,6 +53,7 @@ where
     Message: Clone,
 {
     pub on_close: Message,
+    pub on_open_github: Message,
     pub show_rustdesk_section: bool,
     pub on_show_basic: Message,
     pub on_show_rustdesk: Message,
@@ -64,6 +65,7 @@ where
 {
     let HelpGuideProps {
         on_close,
+        on_open_github,
         show_rustdesk_section,
         on_show_basic,
         on_show_rustdesk,
@@ -109,7 +111,7 @@ where
         .width(Fill)
         .style(theme::styles::titlebar_divider);
 
-    column![header, divider, body, footer_divider, footer(on_close)]
+    column![header, divider, body, footer_divider, footer(on_close, on_open_github)]
         .width(Fill)
         .height(Fill)
         .into()
@@ -1334,12 +1336,35 @@ where
 
 // ── Footer ───────────────────────────────────────────────────────────────────
 
-fn footer<'a, Message>(on_close: Message) -> Element<'a, Message>
+fn footer<'a, Message>(on_close: Message, on_open_github: Message) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
     container(
         row![
+            button(icons::centered(
+                Glyph::GitHub,
+                20.0,
+                18.0,
+                colors::rgb(0x6B, 0x72, 0x80),
+            ))
+            .padding([4, 4])
+            .style(|_, status| {
+                let icon_color = match status {
+                    button::Status::Hovered | button::Status::Pressed => {
+                        colors::rgb(0x37, 0x41, 0x51)
+                    }
+                    _ => colors::rgb(0x6B, 0x72, 0x80),
+                };
+                button::Style {
+                    snap: false,
+                    background: Some(iced::Background::Color(iced::Color::TRANSPARENT)),
+                    text_color: icon_color,
+                    border: iced::Border::default(),
+                    shadow: iced::Shadow::default(),
+                }
+            })
+            .on_press(on_open_github),
             Space::new().width(Fill),
             button(
                 text("开始使用")

@@ -112,6 +112,7 @@ pub enum Message {
     VisualCheckCapture,
     VisualCheckCaptured(iced::window::Screenshot),
     VisualCheckFailed(String),
+    OpenGitHub,
     Tick,
     Noop,
 }

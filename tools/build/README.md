@@ -20,6 +20,24 @@ Current Windows build behavior:
 - stores project-local tooling and intermediate artifacts under `.build-tools/windows-msvc/`
 - refreshes `release/windows/` on each run and keeps only `LANScanner.exe`
 
+Windows usage:
+
+1. Open PowerShell in `tools/build/`.
+2. If PowerShell blocks `windows.ps1` because it is not digitally signed, allow script execution for the current shell session only:
+
+   ```powershell
+   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+   ```
+
+   This change is temporary and applies only to the current PowerShell window.
+3. Run the build script:
+
+   ```powershell
+   .\windows.ps1
+   ```
+
+4. Follow the MSVC setup prompt shown by the script. After a successful build, the final executable is written to `release/windows/LANScanner.exe`.
+
 Project-local directories used by the Windows build flow:
 
 - `.build-tools/windows-msvc/local-tools/`: project-local Rust toolchain, Cargo home, and downloaded installers

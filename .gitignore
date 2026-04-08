@@ -13,3 +13,12 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+.ace-tool/
+
+# AI engineer files
+.agents
+.claude
+.codex
+.gemini
+.trellis
+AGENTS.md
