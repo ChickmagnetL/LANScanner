@@ -3,17 +3,15 @@ use iced::{Alignment, Element, Fill, Length, Theme, border};
 use ssh_core::docker::Container;
 
 use crate::theme::{
-    self, colors, fonts,
+    self, AppLanguage, colors, fonts,
     icons::{self, Glyph},
 };
-
-const SECTION_SPACING: u16 = 16;
-const FOOTER_HEIGHT: f32 = 68.0;
 
 pub struct DockerSelectProps<'a, Message>
 where
     Message: Clone + 'a,
 {
+    pub language: AppLanguage,
     pub containers: &'a [Container],
     pub selected_container_id: Option<&'a str>,
     pub on_select: fn(String) -> Message,
@@ -26,6 +24,7 @@ where
     Message: Clone + 'a,
 {
     let DockerSelectProps {
+        language,
         containers,
         selected_container_id,
         on_select,
@@ -37,15 +36,24 @@ where
         .iter()
         .fold(column!().spacing(10), |column, container_item| {
             let is_selected = selected_container_id == Some(container_item.id.as_str());
-            column.push(container_button(container_item, is_selected, on_select))
+            column.push(container_button(
+                container_item,
+                is_selected,
+                on_select,
+                language,
+            ))
         });
 
     let header = container(
         row![
-            text("选择 Docker 容器")
-                .font(fonts::semibold())
-                .size(16)
-                .style(|theme: &Theme| theme::text_primary(theme)),
+            text(localized(
+                language,
+                "选择 Docker 容器",
+                "Choose a Docker Container"
+            ))
+            .font(fonts::semibold())
+            .size(16)
+            .style(|theme: &Theme| theme::text_primary(theme)),
             Space::new().width(Length::Fill),
             close_button(on_close.clone()),
         ]
@@ -59,15 +67,19 @@ where
 
     let body = container(
         column![
-            text("将通过 VS Code Dev Containers 连接到目标容器。")
-                .size(13)
-                .style(|theme: &Theme| theme::text_muted(theme)),
+            text(localized(
+                language,
+                "将通过 VS Code Dev Containers 连接到目标容器。",
+                "The selected container will be opened through VS Code Dev Containers.",
+            ))
+            .size(13)
+            .style(|theme: &Theme| theme::text_muted(theme)),
             scrollable(items)
                 .height(Length::Fixed(260.0))
                 .style(theme::styles::custom_scrollbar),
             row![
                 button(
-                    text("取消")
+                    text(localized(language, "取消", "Cancel"))
                         .font(fonts::semibold())
                         .size(13)
                         .style(|theme: &Theme| theme::text_primary(theme)),
@@ -79,7 +91,7 @@ where
                 button(
                     row![
                         icons::centered(Glyph::Code, 14.0, 12.0, colors::LIGHT.card),
-                        text("连接")
+                        text(localized(language, "连接", "Connect"))
                             .font(fonts::semibold())
                             .size(13)
                             .style(|_| theme::solid_text(colors::LIGHT.card)),
@@ -101,10 +113,18 @@ where
     column![header, divider, body].width(Fill).into()
 }
 
+fn localized(language: AppLanguage, chinese: &'static str, english: &'static str) -> &'static str {
+    match language {
+        AppLanguage::Chinese => chinese,
+        AppLanguage::English => english,
+    }
+}
+
 fn container_button<'a, Message>(
     container_item: &'a Container,
     is_selected: bool,
     on_select: fn(String) -> Message,
+    language: AppLanguage,
 ) -> Element<'a, Message>
 where
     Message: Clone + 'a,
@@ -140,7 +160,7 @@ where
                 .spacing(12)
                 .align_y(Alignment::Center)
                 .width(Fill),
-                status_badge(container_item),
+                status_badge(container_item, language),
             ]
             .align_y(Alignment::Center),
         )
@@ -152,19 +172,22 @@ where
     .into()
 }
 
-fn status_badge<'a, Message>(container_item: &Container) -> Element<'a, Message>
+fn status_badge<'a, Message>(
+    container_item: &Container,
+    language: AppLanguage,
+) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
     let (label, tone, background) = if container_item.is_running {
         (
-            "running",
+            localized(language, "运行中", "Running"),
             colors::rgb(0x22, 0xC5, 0x5E),
             colors::rgba(0x22, 0xC5, 0x5E, 0.12),
         )
     } else {
         (
-            "stopped",
+            localized(language, "已停止", "Stopped"),
             colors::rgb(0x6B, 0x72, 0x80),
             colors::rgba(0x9C, 0xA3, 0xAF, 0.14),
         )

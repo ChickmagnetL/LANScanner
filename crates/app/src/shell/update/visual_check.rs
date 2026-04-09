@@ -216,6 +216,7 @@ fn apply_visual_scene_preset(app: &mut ShellApp, preset: VisualScenePreset) {
 
     app.networks = preset.networks;
     app.networks_signature = network::signature(&app.networks);
+    app.app_language = preset.language;
     app.theme_mode = if preset.dark_mode {
         ThemeMode::Dark
     } else {

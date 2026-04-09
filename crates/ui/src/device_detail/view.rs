@@ -3,7 +3,7 @@ use iced::{Alignment, Element, Fill, Length, Theme, border};
 use ssh_core::scanner::{Device, DeviceIdentityKind};
 
 use crate::theme::{
-    self, colors, fonts,
+    self, AppLanguage, colors, fonts,
     icons::{self, FrameSpec, Glyph},
 };
 
@@ -46,7 +46,10 @@ const EMPTY_STATE_ICON_EDGE: f32 = 68.0;
 const QUICK_CONNECT_PANEL_WIDTH: f32 = 320.0;
 const QUICK_CONNECT_ICON_EDGE: f32 = 36.0;
 
-pub fn view<'a, Message>(state: DetailState<'a, Message>) -> Element<'a, Message>
+pub fn view<'a, Message>(
+    state: DetailState<'a, Message>,
+    app_language: AppLanguage,
+) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
@@ -54,9 +57,9 @@ where
         DetailState::Idle => centered_state(
             DetailVisual::Glyph(Glyph::Search),
             DetailVisual::Glyph(Glyph::Pending),
-            "等待开始",
-            "尚未进行扫描",
-            String::from("选择左侧网卡后开始扫描，结果面板会自动联动展示设备详情。"),
+            detail_idle_eyebrow(app_language),
+            detail_idle_title(app_language),
+            detail_idle_description(app_language),
             colors::rgb(0x3B, 0x82, 0xF6),
             colors::rgba(0x3B, 0x82, 0xF6, 0.10),
         ),
@@ -67,9 +70,9 @@ where
             DetailVisual::RefreshCw {
                 frame: spinner_frame,
             },
-            "同步网卡",
-            "正在读取网络接口",
-            String::from("系统网卡、IP 范围和网络名称正在同步，完成后即可选择网卡开始扫描。"),
+            detail_refreshing_eyebrow(app_language),
+            detail_refreshing_title(app_language),
+            detail_refreshing_description(app_language),
             colors::rgb(0x3B, 0x82, 0xF6),
             colors::rgba(0x3B, 0x82, 0xF6, 0.10),
         ),
@@ -79,9 +82,9 @@ where
         } => {
             let description = match progress {
                 Some((scanned, total)) if total > 0 => {
-                    format!("当前扫描进度 {scanned}/{total}，完成后结果会自动填充。")
+                    detail_scanning_progress_description(app_language, scanned, total)
                 }
-                _ => String::from("正在初始化扫描任务，请稍候。"),
+                _ => detail_scanning_loading_description(app_language),
             };
 
             stack([
@@ -92,13 +95,13 @@ where
                     DetailVisual::RefreshCw {
                         frame: spinner_frame,
                     },
-                    "结果面板已激活",
-                    "扫描进行中",
-                    String::from("设备列表与详情区正在等待新的扫描结果。"),
+                    detail_scanning_eyebrow(app_language),
+                    detail_scanning_title(app_language),
+                    detail_scanning_description(app_language),
                     colors::rgb(0x3B, 0x82, 0xF6),
                     colors::rgba(0x3B, 0x82, 0xF6, 0.10),
                 ),
-                opaque(scanning_overlay(spinner_frame, description)),
+                opaque(scanning_overlay(spinner_frame, description, app_language)),
             ])
             .width(Fill)
             .height(Fill)
@@ -107,22 +110,22 @@ where
         DetailState::EmptyResults => centered_state(
             DetailVisual::Glyph(Glyph::Search),
             DetailVisual::Glyph(Glyph::Search),
-            "扫描完成",
-            "当前网段未发现设备",
-            String::from("这个网段里暂时没有开放 SSH 端口的主机，可以更换网卡后重新扫描。"),
+            detail_empty_results_eyebrow(app_language),
+            detail_empty_results_title(app_language),
+            detail_empty_results_description(app_language),
             colors::rgb(0xEA, 0x58, 0x0C),
             colors::rgba(0xEA, 0x58, 0x0C, 0.10),
         ),
         DetailState::NoSelection => centered_state(
             DetailVisual::Glyph(Glyph::Server),
             DetailVisual::Glyph(Glyph::Search),
-            "等待选择",
-            "请选择左侧设备",
-            String::from("点击设备列表中的任意一项，这里会联动显示名称、IP 和快速连接入口。"),
+            detail_no_selection_eyebrow(app_language),
+            detail_no_selection_title(app_language),
+            detail_no_selection_description(app_language),
             colors::rgb(0x6B, 0x72, 0x80),
             colors::rgba(0x9C, 0xA3, 0xAF, 0.10),
         ),
-        DetailState::Selected(state) => selected_device_state(state),
+        DetailState::Selected(state) => selected_device_state(state, app_language),
     }
 }
 
@@ -143,6 +146,177 @@ impl DetailVisual {
             Self::Glyph(glyph) => icons::centered(glyph, slot, size, tone),
             Self::RefreshCw { frame } => icons::rotating_refresh_centered(frame, slot, size, tone),
         }
+    }
+}
+
+fn detail_idle_eyebrow(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "等待开始",
+        AppLanguage::English => "Ready To Start",
+    }
+}
+
+fn detail_idle_title(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "尚未进行扫描",
+        AppLanguage::English => "No Scan Yet",
+    }
+}
+
+fn detail_idle_description(app_language: AppLanguage) -> String {
+    match app_language {
+        AppLanguage::Chinese => {
+            String::from("选择左侧网卡后开始扫描，结果面板会自动联动展示设备详情。")
+        }
+        AppLanguage::English => String::from(
+            "Select a network on the left to begin scanning. Device details will update here automatically.",
+        ),
+    }
+}
+
+fn detail_refreshing_eyebrow(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "同步网卡",
+        AppLanguage::English => "Refreshing Networks",
+    }
+}
+
+fn detail_refreshing_title(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "正在读取网络接口",
+        AppLanguage::English => "Reading Network Interfaces",
+    }
+}
+
+fn detail_refreshing_description(app_language: AppLanguage) -> String {
+    match app_language {
+        AppLanguage::Chinese => {
+            String::from("系统网卡、IP 范围和网络名称正在同步，完成后即可选择网卡开始扫描。")
+        }
+        AppLanguage::English => String::from(
+            "Syncing system interfaces, IP ranges, and network names. You can start scanning once the list is ready.",
+        ),
+    }
+}
+
+fn detail_scanning_eyebrow(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "结果面板已激活",
+        AppLanguage::English => "Detail Panel Active",
+    }
+}
+
+fn detail_scanning_title(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "扫描进行中",
+        AppLanguage::English => "Scan In Progress",
+    }
+}
+
+fn detail_scanning_description(app_language: AppLanguage) -> String {
+    match app_language {
+        AppLanguage::Chinese => String::from("设备列表与详情区正在等待新的扫描结果。"),
+        AppLanguage::English => {
+            String::from("The device list and detail panel are waiting for new scan results.")
+        }
+    }
+}
+
+fn detail_scanning_loading_description(app_language: AppLanguage) -> String {
+    match app_language {
+        AppLanguage::Chinese => String::from("正在初始化扫描任务，请稍候。"),
+        AppLanguage::English => String::from("Initializing the scan task. Please wait a moment."),
+    }
+}
+
+fn detail_scanning_progress_description(
+    app_language: AppLanguage,
+    scanned: usize,
+    total: usize,
+) -> String {
+    match app_language {
+        AppLanguage::Chinese => format!("当前扫描进度 {scanned}/{total}，完成后结果会自动填充。"),
+        AppLanguage::English => {
+            format!("Progress {scanned}/{total}. Results will populate here automatically.")
+        }
+    }
+}
+
+fn scanning_overlay_eyebrow(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "正在扫描局域网",
+        AppLanguage::English => "Scanning LAN",
+    }
+}
+
+fn scanning_overlay_title(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "扫描任务进行中",
+        AppLanguage::English => "Scan Running",
+    }
+}
+
+fn detail_empty_results_eyebrow(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "扫描完成",
+        AppLanguage::English => "Scan Complete",
+    }
+}
+
+fn detail_empty_results_title(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "当前网段未发现设备",
+        AppLanguage::English => "No Devices Found",
+    }
+}
+
+fn detail_empty_results_description(app_language: AppLanguage) -> String {
+    match app_language {
+        AppLanguage::Chinese => {
+            String::from("这个网段里暂时没有开放 SSH 端口的主机，可以更换网卡后重新扫描。")
+        }
+        AppLanguage::English => String::from(
+            "No hosts with an open SSH port were found on this subnet. Switch networks and try again.",
+        ),
+    }
+}
+
+fn detail_no_selection_eyebrow(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "等待选择",
+        AppLanguage::English => "Waiting For Selection",
+    }
+}
+
+fn detail_no_selection_title(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "请选择左侧设备",
+        AppLanguage::English => "Select A Device",
+    }
+}
+
+fn detail_no_selection_description(app_language: AppLanguage) -> String {
+    match app_language {
+        AppLanguage::Chinese => {
+            String::from("点击设备列表中的任意一项，这里会联动显示名称、IP 和快速连接入口。")
+        }
+        AppLanguage::English => String::from(
+            "Click any device in the list to show its name, IP address, and quick-connect actions here.",
+        ),
+    }
+}
+
+fn launcher_temporarily_locked_label(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "稍后可用",
+        AppLanguage::English => "Locked",
+    }
+}
+
+fn launcher_unavailable_label(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "不可用",
+        AppLanguage::English => "Unavailable",
     }
 }
 
@@ -203,6 +377,7 @@ where
 fn scanning_overlay<'a, Message>(
     spinner_frame: &'static str,
     description: String,
+    app_language: AppLanguage,
 ) -> Element<'a, Message>
 where
     Message: 'a,
@@ -212,7 +387,7 @@ where
     let panel = container(
         column![
             state_tag(
-                "正在扫描局域网",
+                scanning_overlay_eyebrow(app_language),
                 DetailVisual::RefreshCw {
                     frame: spinner_frame,
                 },
@@ -227,7 +402,7 @@ where
                 accent_soft,
                 EMPTY_STATE_ICON_EDGE,
             ),
-            text("扫描任务进行中")
+            text(scanning_overlay_title(app_language))
                 .font(fonts::semibold())
                 .size(16)
                 .style(|theme: &Theme| theme::text_primary(theme)),
@@ -277,6 +452,7 @@ where
 
 fn selected_device_state<'a, Message>(
     state: SelectedDetailState<'a, Message>,
+    app_language: AppLanguage,
 ) -> Element<'a, Message>
 where
     Message: Clone + 'a,
@@ -296,6 +472,7 @@ where
 
     let launchers = column![
         launcher_card(
+            app_language,
             "Shell",
             Glyph::Terminal,
             colors::rgb(0x7C, 0x3A, 0xED),
@@ -307,6 +484,7 @@ where
             ),
         ),
         launcher_card(
+            app_language,
             "VS Code",
             Glyph::Code,
             colors::rgb(0x3B, 0x82, 0xF6),
@@ -318,6 +496,7 @@ where
             ),
         ),
         launcher_card(
+            app_language,
             "VNC Viewer",
             Glyph::Display,
             colors::rgb(0x22, 0xC5, 0x5E),
@@ -329,6 +508,7 @@ where
             ),
         ),
         launcher_card(
+            app_language,
             "MobaXterm",
             Glyph::Laptop,
             colors::rgb(0xF9, 0x73, 0x16),
@@ -340,6 +520,7 @@ where
             ),
         ),
         launcher_card(
+            app_language,
             "Docker",
             Glyph::Docker,
             colors::rgb(0x08, 0x91, 0xB2),
@@ -351,6 +532,7 @@ where
             ),
         ),
         launcher_card(
+            app_language,
             "RustDesk",
             Glyph::Desktop,
             colors::rgb(0x4F, 0x46, 0xE5),
@@ -375,7 +557,7 @@ where
                     .style(|theme: &Theme| theme::text_primary(theme)),
                 text(format!(
                     "{} · {}",
-                    identity_kind_label(device.identity_kind),
+                    identity_kind_label(device.identity_kind, app_language),
                     device.ip
                 ))
                 .size(13)
@@ -460,12 +642,21 @@ fn identity_accent(identity_kind: DeviceIdentityKind) -> iced::Color {
     }
 }
 
-fn identity_kind_label(identity_kind: DeviceIdentityKind) -> &'static str {
+fn identity_kind_label(
+    identity_kind: DeviceIdentityKind,
+    app_language: AppLanguage,
+) -> &'static str {
     match identity_kind {
         DeviceIdentityKind::RaspberryPi => "Raspberry Pi",
         DeviceIdentityKind::Jetson => "NVIDIA Jetson",
-        DeviceIdentityKind::Computer => "Computer",
-        DeviceIdentityKind::Unknown => "Unknown Device",
+        DeviceIdentityKind::Computer => match app_language {
+            AppLanguage::Chinese => "计算机",
+            AppLanguage::English => "Computer",
+        },
+        DeviceIdentityKind::Unknown => match app_language {
+            AppLanguage::Chinese => "未知设备",
+            AppLanguage::English => "Unknown Device",
+        },
     }
 }
 
@@ -513,6 +704,7 @@ where
 }
 
 fn launcher_card<'a, Message>(
+    app_language: AppLanguage,
     label: &'static str,
     glyph: Glyph,
     accent: iced::Color,
@@ -531,13 +723,15 @@ where
         LauncherVisualState::Available => None,
         LauncherVisualState::Processing => None,
         LauncherVisualState::TemporarilyLocked => Some((
-            "稍后可用",
+            launcher_temporarily_locked_label(app_language),
             locked_tone,
             colors::rgba(0x64, 0x74, 0x8B, 0.12),
         )),
-        LauncherVisualState::Unavailable => {
-            Some(("不可用", muted_tone, colors::rgba(0x9C, 0xA3, 0xAF, 0.14)))
-        }
+        LauncherVisualState::Unavailable => Some((
+            launcher_unavailable_label(app_language),
+            muted_tone,
+            colors::rgba(0x9C, 0xA3, 0xAF, 0.14),
+        )),
     };
     let icon_tone = if visually_disabled {
         muted_tone
@@ -743,9 +937,9 @@ fn launcher_state_badge<'a, Message: 'a>(
     background: iced::Color,
 ) -> Element<'a, Message> {
     let glyph = match label {
-        "处理中" => Glyph::Pending,
-        "稍后可用" => Glyph::Lock,
-        "不可用" => Glyph::Close,
+        "处理中" | "Processing" => Glyph::Pending,
+        "稍后可用" | "Locked" => Glyph::Lock,
+        "不可用" | "Unavailable" => Glyph::Close,
         _ => Glyph::Check,
     };
 

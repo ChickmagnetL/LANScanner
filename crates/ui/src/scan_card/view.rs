@@ -3,7 +3,7 @@ use iced::{Alignment, Element, Fill, Length, Theme, border};
 use ssh_core::network::NetworkInterface;
 
 use crate::theme::{
-    self, colors, fonts,
+    self, AppLanguage, colors, fonts,
     icons::{self, AssetGlyph, Glyph},
 };
 
@@ -41,6 +41,7 @@ enum IconToneRole {
 }
 
 pub struct ScanCardProps<'a, Message> {
+    pub app_language: AppLanguage,
     pub dropdown: Element<'a, Message>,
     pub selected_network: Option<&'a NetworkInterface>,
     pub is_refreshing: bool,
@@ -56,6 +57,7 @@ where
     Message: Clone + 'a,
 {
     let ScanCardProps {
+        app_language,
         dropdown,
         selected_network,
         is_refreshing,
@@ -70,7 +72,7 @@ where
         row![
             row![
                 network_icon(),
-                text("扫描网络")
+                text(scan_card_title(app_language))
                     .font(fonts::semibold())
                     .size(TITLE_LABEL_SIZE)
                     .style(|theme: &Theme| theme::solid_text(title_tone(theme))),
@@ -92,6 +94,7 @@ where
 
     let scan_enabled = !is_blocked && !is_scanning && selected_network.is_some() && !is_refreshing;
     let scan_button = button(scan_button_content(
+        app_language,
         is_scanning,
         selected_network.is_some(),
         spinner_frame,
@@ -167,6 +170,7 @@ where
 }
 
 fn scan_button_content<'a, Message: 'a>(
+    app_language: AppLanguage,
     is_scanning: bool,
     has_selected_network: bool,
     spinner_frame: &'static str,
@@ -179,7 +183,7 @@ fn scan_button_content<'a, Message: 'a>(
                 14.0,
                 scan_button_loading_tone,
             ),
-            text("扫描中...")
+            text(scan_button_loading_label(app_language))
                 .font(fonts::semibold())
                 .size(ACTION_BUTTON_LABEL_SIZE)
                 .style(|theme: &Theme| theme::solid_text(scan_button_loading_tone(theme))),
@@ -188,13 +192,13 @@ fn scan_button_content<'a, Message: 'a>(
         .align_y(Alignment::Center)
         .into()
     } else if has_selected_network {
-        text("开始扫描")
+        text(scan_button_ready_label(app_language))
             .font(fonts::semibold())
             .size(ACTION_BUTTON_LABEL_SIZE)
             .style(|_| theme::solid_text(iced::Color::WHITE))
             .into()
     } else {
-        text("请选择网卡")
+        text(scan_button_placeholder_label(app_language))
             .font(fonts::semibold())
             .size(ACTION_BUTTON_LABEL_SIZE)
             .style(|_| theme::solid_text(iced::Color::WHITE))
@@ -234,6 +238,34 @@ fn scan_button_style(theme: &Theme, status: button::Status, is_scanning: bool) -
     let mut style = crate::theme::styles::primary_button(theme, status);
     style.border.radius = border::radius(ACTION_BUTTON_RADIUS);
     style
+}
+
+fn scan_card_title(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "扫描网络",
+        AppLanguage::English => "Scan Network",
+    }
+}
+
+fn scan_button_loading_label(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "扫描中...",
+        AppLanguage::English => "Scanning...",
+    }
+}
+
+fn scan_button_ready_label(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "开始扫描",
+        AppLanguage::English => "Start Scan",
+    }
+}
+
+fn scan_button_placeholder_label(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "请选择网卡",
+        AppLanguage::English => "Select Network",
+    }
 }
 
 fn title_tone(theme: &Theme) -> iced::Color {

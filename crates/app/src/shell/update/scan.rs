@@ -6,6 +6,7 @@ use ssh_core::scanner::{
     build_layered_scan_devices_from_probe_report, compare_devices_by_ip, sort_devices_by_ip,
 };
 use tokio_util::sync::CancellationToken;
+use ui::theme::AppLanguage;
 
 use crate::message::Message;
 
@@ -210,20 +211,9 @@ pub(super) fn can_start_verify(app: &ShellApp) -> bool {
 
 pub(super) fn start_verify_task(app: &mut ShellApp) -> Task<Message> {
     let Some((username, password)) = app.resolve_verify_credentials() else {
-        let warning = match app.verify_credential_input() {
-            VerifyCredentialInput::PasswordOnly => {
-                "当前仅填写 SSH 密码；自动验证不会在 password-only 模式下触发，请补充 SSH 用户名。"
-            }
-            VerifyCredentialInput::Empty | VerifyCredentialInput::UsernameOnly { .. } => {
-                "请先填写 SSH 用户名，再执行凭证检测。"
-            }
-            VerifyCredentialInput::UsernamePassword { .. } => {
-                "请先填写 SSH 用户名，再执行凭证检测。"
-            }
-        };
         app.set_notice(Notice {
             tone: NoticeTone::Warning,
-            message: String::from(warning),
+            message: verify_warning_message(app.app_language, app.verify_credential_input()),
         });
         return Task::none();
     };
@@ -232,7 +222,14 @@ pub(super) fn start_verify_task(app: &mut ShellApp) -> Task<Message> {
     if verify_devices.is_empty() {
         app.set_notice(Notice {
             tone: NoticeTone::Warning,
-            message: String::from("当前没有可验证的 SSH 设备，请先等待 TCP 22 探测完成。"),
+            message: match app.app_language {
+                AppLanguage::Chinese => {
+                    String::from("当前没有可验证的 SSH 设备，请先等待 TCP 22 探测完成。")
+                }
+                AppLanguage::English => String::from(
+                    "There are no SSH-ready devices to verify yet. Wait for the TCP 22 probe to finish first.",
+                ),
+            },
         });
         return Task::none();
     }
@@ -259,6 +256,27 @@ pub(super) fn advance_scan_session(app: &mut ShellApp) -> u64 {
 
 pub(super) fn is_current_scan_session(app: &ShellApp, session_id: u64) -> bool {
     app.scan_session_id == session_id
+}
+
+fn verify_warning_message(language: AppLanguage, input: VerifyCredentialInput) -> String {
+    match (language, input) {
+        (AppLanguage::Chinese, VerifyCredentialInput::PasswordOnly) => String::from(
+            "当前仅填写 SSH 密码；自动验证不会在 password-only 模式下触发，请补充 SSH 用户名。",
+        ),
+        (AppLanguage::English, VerifyCredentialInput::PasswordOnly) => String::from(
+            "Only an SSH password is filled in. Automatic verification does not run in password-only mode, so add an SSH username first.",
+        ),
+        (AppLanguage::Chinese, VerifyCredentialInput::Empty)
+        | (AppLanguage::Chinese, VerifyCredentialInput::UsernameOnly { .. })
+        | (AppLanguage::Chinese, VerifyCredentialInput::UsernamePassword { .. }) => {
+            String::from("请先填写 SSH 用户名，再执行凭证检测。")
+        }
+        (AppLanguage::English, VerifyCredentialInput::Empty)
+        | (AppLanguage::English, VerifyCredentialInput::UsernameOnly { .. })
+        | (AppLanguage::English, VerifyCredentialInput::UsernamePassword { .. }) => {
+            String::from("Enter an SSH username before starting credential verification.")
+        }
+    }
 }
 
 pub(super) fn reset_verify_runtime(app: &mut ShellApp) {

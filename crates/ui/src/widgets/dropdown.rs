@@ -539,16 +539,17 @@ where
 }
 
 fn footer_label(placeholder: DropdownPlaceholder<'_>) -> String {
-    let subject = placeholder
-        .title
-        .trim()
-        .trim_end_matches("...")
-        .trim_start_matches("请选择")
-        .trim_start_matches("选择")
-        .trim();
+    let title = placeholder.title.trim();
+    let subject = dropdown_subject(title);
 
     if subject.is_empty() {
-        "添加选项...".to_owned()
+        if prefers_english_copy(title) {
+            String::from("Add Option...")
+        } else {
+            String::from("添加选项...")
+        }
+    } else if prefers_english_copy(title) {
+        format!("Add {}...", subject)
     } else {
         format!("添加{}...", subject)
     }
@@ -557,23 +558,28 @@ fn footer_label(placeholder: DropdownPlaceholder<'_>) -> String {
 fn summarize_trigger_title(title: &str, details: &[String]) -> Option<String> {
     details
         .iter()
-        .find(|detail| detail.starts_with("接口 "))
-        .or_else(|| details.iter().find(|detail| detail.starts_with("网段 ")))
+        .find(|detail| detail_kind(detail) == Some(DetailKind::Interface))
+        .or_else(|| {
+            details
+                .iter()
+                .find(|detail| detail_kind(detail) == Some(DetailKind::Subnet))
+        })
+        .or_else(|| details.first())
         .map(|detail| format!("{title} ({})", strip_detail_prefix(detail)))
 }
 
 fn option_visible_details(details: &[String]) -> Vec<String> {
     let kind = details
         .iter()
-        .find(|detail| !detail.starts_with("网段 ") && !detail.starts_with("接口 "))
+        .find(|detail| detail_kind(detail).is_none())
         .map(|detail| detail.trim().to_owned());
     let subnet = details
         .iter()
-        .find(|detail| detail.starts_with("网段 "))
+        .find(|detail| detail_kind(detail) == Some(DetailKind::Subnet))
         .map(|detail| strip_detail_prefix(detail));
     let iface = details
         .iter()
-        .find(|detail| detail.starts_with("接口 "))
+        .find(|detail| detail_kind(detail) == Some(DetailKind::Interface))
         .map(|detail| strip_detail_prefix(detail));
 
     if subnet.is_some() || kind.is_some() {
@@ -587,10 +593,10 @@ fn option_visible_details(details: &[String]) -> Vec<String> {
             visible.push(subnet);
         }
 
-        if visible.len() < 2
-            && let Some(iface) = iface
-        {
-            visible.push(iface);
+        if visible.len() < 2 {
+            if let Some(iface) = iface {
+                visible.push(iface);
+            }
         }
 
         return visible;
@@ -605,25 +611,68 @@ fn option_visible_details(details: &[String]) -> Vec<String> {
                 .take(2)
                 .map(|detail| detail.trim().to_owned()),
         );
-    } else if visible.len() == 1
-        && details.len() > 1
-        && let Some(kind_or_hint) = details
-            .iter()
-            .find(|detail| !detail.starts_with("网段 ") && !detail.starts_with("接口 "))
-    {
-        visible.push(kind_or_hint.trim().to_owned());
+    } else if visible.len() == 1 && details.len() > 1 {
+        if let Some(kind_or_hint) = details.iter().find(|detail| detail_kind(detail).is_none()) {
+            visible.push(kind_or_hint.trim().to_owned());
+        }
     }
 
     visible
 }
 
 fn strip_detail_prefix(detail: &str) -> String {
-    detail
-        .trim()
-        .trim_start_matches("网段 ")
-        .trim_start_matches("接口 ")
-        .trim()
-        .to_owned()
+    detail_body(detail).trim().to_owned()
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DetailKind {
+    Subnet,
+    Interface,
+}
+
+fn detail_kind(detail: &str) -> Option<DetailKind> {
+    let trimmed = detail.trim();
+
+    if starts_with_any(trimmed, &["网段 ", "subnet "]) {
+        Some(DetailKind::Subnet)
+    } else if starts_with_any(trimmed, &["接口 ", "interface "]) {
+        Some(DetailKind::Interface)
+    } else {
+        None
+    }
+}
+
+fn detail_body(detail: &str) -> &str {
+    trim_prefix_case_insensitive(detail.trim(), &["网段 ", "接口 ", "Subnet ", "Interface "])
+}
+
+fn dropdown_subject(title: &str) -> &str {
+    let without_ellipsis = title.trim_end_matches("...");
+    trim_prefix_case_insensitive(without_ellipsis.trim(), &["请选择", "选择", "Select "]).trim()
+}
+
+fn prefers_english_copy(text: &str) -> bool {
+    text.chars().any(|ch| ch.is_ascii_alphabetic())
+}
+
+fn starts_with_any(text: &str, prefixes: &[&str]) -> bool {
+    prefixes.iter().any(|prefix| {
+        text.to_ascii_lowercase()
+            .starts_with(&prefix.to_ascii_lowercase())
+    })
+}
+
+fn trim_prefix_case_insensitive<'a>(text: &'a str, prefixes: &[&str]) -> &'a str {
+    let lower = text.to_ascii_lowercase();
+
+    for prefix in prefixes {
+        let lower_prefix = prefix.to_ascii_lowercase();
+        if lower.starts_with(&lower_prefix) {
+            return text[prefix.len()..].trim_start();
+        }
+    }
+
+    text
 }
 
 fn is_dark_surface(theme: &Theme) -> bool {

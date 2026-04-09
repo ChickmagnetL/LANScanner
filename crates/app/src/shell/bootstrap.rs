@@ -4,7 +4,7 @@ use iced::Task;
 use ssh_core::credential::store::{self, AppConfig};
 use ssh_core::credential::{self, Credential};
 use ssh_core::ssh::key_mgmt;
-use ui::theme::ThemeMode;
+use ui::theme::{AppLanguage, ThemeMode};
 
 use crate::message::Message;
 use crate::visual_check::VisualCheckConfig;
@@ -80,6 +80,7 @@ impl ShellApp {
             verify_completed_count: 0,
             networks_signature: 0,
             spinner_phase: 0,
+            app_language: AppLanguage::Chinese,
             theme_mode: ThemeMode::Light,
             window_id: None,
             is_window_maximized: false,

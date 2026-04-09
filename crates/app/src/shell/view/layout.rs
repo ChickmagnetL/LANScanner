@@ -5,7 +5,7 @@ use ssh_core::network::{InterfaceType, NetworkInterface};
 use ssh_core::scanner::{Device, DeviceStatus};
 use ui::device_detail::SelectedDetailState;
 use ui::theme::icons::{self, Glyph};
-use ui::theme::{self, ThemeMode};
+use ui::theme::{self, AppLanguage, ThemeMode};
 use ui::widgets::dropdown::{self, DropdownEntry};
 
 use crate::message::Message;
@@ -25,9 +25,11 @@ use super::resize_overlay::window_resize_overlay;
 pub(super) fn view(app: &ShellApp) -> Element<'_, Message> {
     let header = ui::titlebar::view(
         app.theme_mode,
+        app.app_language,
         app.is_window_maximized,
         Message::ToggleTheme,
         Message::OpenHelpModal,
+        Message::ToggleLanguage,
         Message::WindowAction,
     );
 
@@ -37,7 +39,7 @@ pub(super) fn view(app: &ShellApp) -> Element<'_, Message> {
             selection: app.selected_credential(),
             placeholder: dropdown::DropdownPlaceholder {
                 glyph: Glyph::KeyRound,
-                title: "用户名",
+                title: localized(app.app_language, "用户名", "Username"),
                 subtitle: None,
             },
             show_trigger_icon: false,
@@ -64,7 +66,11 @@ pub(super) fn view(app: &ShellApp) -> Element<'_, Message> {
                     selection: app.selected_network(),
                     placeholder: dropdown::DropdownPlaceholder {
                         glyph: Glyph::Wifi,
-                        title: "选择网络接口...",
+                        title: localized(
+                            app.app_language,
+                            "选择网络接口...",
+                            "Select Network Interface...",
+                        ),
                         subtitle: None,
                     },
                     show_trigger_icon: true,
@@ -80,12 +86,13 @@ pub(super) fn view(app: &ShellApp) -> Element<'_, Message> {
                         top: scan_dropdown_top(),
                         width: scan_dropdown_width(),
                     },
-                    describe: |network| describe_network(network, &app.networks),
+                    describe: |network| describe_network(network, &app.networks, app.app_language),
                     on_selected: |network: NetworkInterface| Message::SelectNetwork(network.id),
                 },
                 |network_dropdown| {
                     let left_column = column![
                         ui::scan_card::view(ui::scan_card::ScanCardProps {
+                            app_language: app.app_language,
                             dropdown: network_dropdown,
                             selected_network: app.selected_network(),
                             is_refreshing: app.is_refreshing_networks,
@@ -100,6 +107,7 @@ pub(super) fn view(app: &ShellApp) -> Element<'_, Message> {
                             },
                         }),
                         ui::credential_card::view(ui::credential_card::CredentialCardProps {
+                            app_language: app.app_language,
                             dropdown: credential_dropdown_affordance(app),
                             is_dark_theme: matches!(app.theme_mode, ThemeMode::Dark),
                             username: &app.ssh_username,
@@ -126,7 +134,7 @@ pub(super) fn view(app: &ShellApp) -> Element<'_, Message> {
                     .spacing(LEFT_COLUMN_SPACING);
 
                     let result_title_slot: Element<'_, Message> = container(
-                        text("扫描结果")
+                        text(localized(app.app_language, "扫描结果", "Scan Results"))
                             .font(ui::theme::fonts::semibold())
                             .size(14)
                             .style(|theme: &Theme| theme::text_primary(theme)),
@@ -138,6 +146,7 @@ pub(super) fn view(app: &ShellApp) -> Element<'_, Message> {
                         match result_header_status(
                             app.notice.as_ref(),
                             app.connection_status.as_deref(),
+                            app.app_language,
                         ) {
                             Some(status_strip) => status_strip,
                             None => Space::new()
@@ -171,14 +180,18 @@ pub(super) fn view(app: &ShellApp) -> Element<'_, Message> {
                     });
 
                     let list_content = if app.is_scanning && app.devices.is_empty() {
-                        ui::device_list::placeholder(ui::device_list::PlaceholderState::Scanning {
-                            spinner_frame: app.spinner_frame(),
-                            progress: app.scan_progress,
-                        })
+                        ui::device_list::placeholder(
+                            ui::device_list::PlaceholderState::Scanning {
+                                spinner_frame: app.spinner_frame(),
+                                progress: app.scan_progress,
+                            },
+                            app.app_language,
+                        )
                     } else if app.has_scanned {
                         if app.devices.is_empty() {
                             ui::device_list::placeholder(
                                 ui::device_list::PlaceholderState::EmptyResults,
+                                app.app_language,
                             )
                         } else {
                             visual_check_device_list(app)
@@ -188,9 +201,13 @@ pub(super) fn view(app: &ShellApp) -> Element<'_, Message> {
                             ui::device_list::PlaceholderState::RefreshingNetworks {
                                 spinner_frame: app.spinner_frame(),
                             },
+                            app.app_language,
                         )
                     } else {
-                        ui::device_list::placeholder(ui::device_list::PlaceholderState::Idle)
+                        ui::device_list::placeholder(
+                            ui::device_list::PlaceholderState::Idle,
+                            app.app_language,
+                        )
                     };
 
                     let detail_state = if app.is_scanning && app.devices.is_empty() {
@@ -229,7 +246,7 @@ pub(super) fn view(app: &ShellApp) -> Element<'_, Message> {
                     let show_detail_panel =
                         matches!(&detail_state, ui::device_detail::DetailState::Selected(_));
                     let detail_panel: Option<Element<'_, Message>> = if show_detail_panel {
-                        Some(ui::device_detail::view(detail_state))
+                        Some(ui::device_detail::view(detail_state, app.app_language))
                     } else {
                         None
                     };
@@ -299,6 +316,7 @@ pub(super) fn view(app: &ShellApp) -> Element<'_, Message> {
                         Some(ActiveModal::HelpGuide) => ui::widgets::modal::overlay(
                             shell,
                             ui::modals::help::view(ui::modals::help::HelpGuideProps {
+                                language: app.app_language,
                                 on_close: Message::CloseHelpModal,
                                 on_open_github: Message::OpenGitHub,
                                 show_rustdesk_section: app.help_modal_show_rustdesk,
@@ -312,6 +330,7 @@ pub(super) fn view(app: &ShellApp) -> Element<'_, Message> {
                             shell,
                             ui::modals::cred_mgmt::view(
                                 ui::modals::cred_mgmt::CredentialManagementProps {
+                                    language: app.app_language,
                                     credentials: &app.credentials,
                                     editing_username: app.editing_credential_username.as_deref(),
                                     username: &app.new_credential_username,
@@ -335,6 +354,7 @@ pub(super) fn view(app: &ShellApp) -> Element<'_, Message> {
                             shell,
                             ui::modals::docker_select::view(
                                 ui::modals::docker_select::DockerSelectProps {
+                                    language: app.app_language,
                                     containers: &state.containers,
                                     selected_container_id: state.selected_container_id.as_deref(),
                                     on_select: Message::SelectContainer,
@@ -360,6 +380,7 @@ fn visual_check_device_list(app: &ShellApp) -> Element<'_, Message> {
     ui::device_list::view(
         &app.devices,
         app.selected_device_id.as_deref(),
+        app.app_language,
         Message::SelectDevice,
     )
 }
@@ -426,24 +447,31 @@ fn credential_dropdown_icon_disabled_tone(theme: &Theme) -> iced::Color {
 
 fn device_detail_status(app: &ShellApp, device: &Device) -> String {
     if active_connection_device_ip(app) == Some(device.ip.as_str()) {
-        return app
-            .connection_status
-            .clone()
-            .unwrap_or_else(|| String::from("正在准备连接"));
+        return app.connection_status.clone().unwrap_or_else(|| {
+            localized_string(app.app_language, "正在准备连接", "Preparing connection")
+        });
     }
 
     match device.status {
-        DeviceStatus::Untested => {
-            String::from("凭据尚未检测；填写 SSH 用户名后，扫描结束会自动检测，也可手动重试。")
-        }
-        DeviceStatus::Ready => {
-            String::from("SSH 凭据检测成功；外部工具的免密前置会在启动连接时单独校验。")
-        }
-        DeviceStatus::Denied => {
-            String::from("检测结果为错误（用户名明显错误或认证失败）；仍可直接发起快速连接。")
-        }
-        DeviceStatus::Error => String::from(
+        DeviceStatus::Untested => localized_string(
+            app.app_language,
+            "凭据尚未检测；填写 SSH 用户名后，扫描结束会自动检测，也可手动重试。",
+            "Credentials have not been checked yet. Fill in the SSH username to auto-verify after the scan, or retry manually.",
+        ),
+        DeviceStatus::Ready => localized_string(
+            app.app_language,
+            "SSH 凭据检测成功；外部工具的免密前置会在启动连接时单独校验。",
+            "SSH credentials are ready. External tools will still validate their own passwordless prerequisites when launching.",
+        ),
+        DeviceStatus::Denied => localized_string(
+            app.app_language,
+            "检测结果为错误（用户名明显错误或认证失败）；仍可直接发起快速连接。",
+            "Verification failed due to an invalid username or authentication error. You can still start a quick connection directly.",
+        ),
+        DeviceStatus::Error => localized_string(
+            app.app_language,
             "检测结果为异常（仅用户名或网络抖动时可能无法稳定判定）；仍可直接发起快速连接。",
+            "Verification ended with an unstable result, often caused by username-only checks or network jitter. You can still start a quick connection directly.",
         ),
     }
 }
@@ -489,12 +517,22 @@ fn horizontal_divider<'a>() -> Element<'a, Message> {
 fn describe_network(
     network: &NetworkInterface,
     all_networks: &[NetworkInterface],
+    language: AppLanguage,
 ) -> DropdownEntry {
-    let (glyph, kind_label) = describe_network_kind(network);
-    let mut details = vec![format!("网段 {} · {}", network.ip_range, kind_label)];
+    let (glyph, kind_label) = describe_network_kind(network, language);
+    let mut details = vec![format!(
+        "{} {} · {}",
+        localized(language, "网段", "Subnet"),
+        network.ip_range,
+        kind_label
+    )];
 
-    if needs_interface_disambiguation(network, all_networks, kind_label) {
-        details.push(format!("接口 {}", network.id));
+    if needs_interface_disambiguation(network, all_networks) {
+        details.push(format!(
+            "{} {}",
+            localized(language, "接口", "Interface"),
+            network.id
+        ));
     }
 
     DropdownEntry {
@@ -512,57 +550,98 @@ fn describe_credential(credential: &Credential) -> DropdownEntry {
     }
 }
 
-fn describe_network_kind(network: &NetworkInterface) -> (Glyph, &'static str) {
+fn describe_network_kind(
+    network: &NetworkInterface,
+    language: AppLanguage,
+) -> (Glyph, &'static str) {
     let fingerprint = format!("{} {}", network.name, network.id).to_ascii_lowercase();
 
     match network.iface_type {
         InterfaceType::Wifi => (Glyph::Wifi, "Wi-Fi"),
-        InterfaceType::Ethernet => (Glyph::Ethernet, "以太网"),
-        InterfaceType::Docker => {
-            classify_virtual_network(&fingerprint).unwrap_or((Glyph::Docker, "虚拟网络"))
-        }
-        InterfaceType::Other => {
-            classify_virtual_network(&fingerprint).unwrap_or((Glyph::Network, "网络接口"))
-        }
+        InterfaceType::Ethernet => (Glyph::Ethernet, localized(language, "以太网", "Ethernet")),
+        InterfaceType::Docker => classify_virtual_network(&fingerprint, language).unwrap_or((
+            Glyph::Docker,
+            localized(language, "虚拟网络", "Virtual Network"),
+        )),
+        InterfaceType::Other => classify_virtual_network(&fingerprint, language).unwrap_or((
+            Glyph::Network,
+            localized(language, "网络接口", "Network Interface"),
+        )),
     }
 }
 
 fn needs_interface_disambiguation(
     network: &NetworkInterface,
     all_networks: &[NetworkInterface],
-    kind_label: &str,
 ) -> bool {
     all_networks.iter().any(|candidate| {
         candidate.id != network.id
             && candidate.name == network.name
             && candidate.ip_range == network.ip_range
-            && describe_network_kind(candidate).1 == kind_label
+            && describe_network_kind(candidate, AppLanguage::Chinese).1
+                == describe_network_kind(network, AppLanguage::Chinese).1
     })
 }
 
-fn classify_virtual_network(fingerprint: &str) -> Option<(Glyph, &'static str)> {
+fn classify_virtual_network(
+    fingerprint: &str,
+    language: AppLanguage,
+) -> Option<(Glyph, &'static str)> {
     if fingerprint.contains("vmware") || fingerprint.contains("vmnet") {
-        Some((Glyph::Docker, "VMware 虚拟网卡"))
+        Some((
+            Glyph::Docker,
+            localized(language, "VMware 虚拟网卡", "VMware Virtual Adapter"),
+        ))
     } else if fingerprint.contains("docker") {
-        Some((Glyph::Docker, "Docker 虚拟网卡"))
+        Some((
+            Glyph::Docker,
+            localized(language, "Docker 虚拟网卡", "Docker Virtual Adapter"),
+        ))
     } else if fingerprint.contains("vethernet")
         || fingerprint.contains("hyper-v")
         || fingerprint.contains("hyperv")
         || fingerprint.contains("wsl")
     {
-        Some((Glyph::Docker, "Windows 虚拟网卡"))
+        Some((
+            Glyph::Docker,
+            localized(language, "Windows 虚拟网卡", "Windows Virtual Adapter"),
+        ))
     } else if fingerprint.contains("virtualbox") || fingerprint.contains("vbox") {
-        Some((Glyph::Docker, "VirtualBox 虚拟网卡"))
+        Some((
+            Glyph::Docker,
+            localized(
+                language,
+                "VirtualBox 虚拟网卡",
+                "VirtualBox Virtual Adapter",
+            ),
+        ))
     } else if fingerprint.contains("tailscale")
         || fingerprint.contains("zerotier")
         || fingerprint.contains("vpn")
         || fingerprint.contains("tun")
         || fingerprint.contains("tap")
     {
-        Some((Glyph::Network, "隧道网络接口"))
+        Some((
+            Glyph::Network,
+            localized(language, "隧道网络接口", "Tunnel Interface"),
+        ))
     } else if fingerprint.contains("virtual") || fingerprint.contains("bridge") {
-        Some((Glyph::Docker, "虚拟网络"))
+        Some((
+            Glyph::Docker,
+            localized(language, "虚拟网络", "Virtual Network"),
+        ))
     } else {
         None
     }
+}
+
+fn localized(language: AppLanguage, chinese: &'static str, english: &'static str) -> &'static str {
+    match language {
+        AppLanguage::Chinese => chinese,
+        AppLanguage::English => english,
+    }
+}
+
+fn localized_string(language: AppLanguage, chinese: &'static str, english: &'static str) -> String {
+    localized(language, chinese, english).to_owned()
 }

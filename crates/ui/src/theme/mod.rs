@@ -9,6 +9,22 @@ use iced::{Color, Theme, theme};
 pub use colors::SurfacePalette;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum AppLanguage {
+    #[default]
+    Chinese,
+    English,
+}
+
+impl AppLanguage {
+    pub fn toggle(self) -> Self {
+        match self {
+            Self::Chinese => Self::English,
+            Self::English => Self::Chinese,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum ThemeMode {
     #[default]
     Light,

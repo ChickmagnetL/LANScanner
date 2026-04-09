@@ -1,6 +1,6 @@
 use iced::widget::{container, row, text};
 use iced::{Alignment, Element, Theme, border};
-use ui::theme;
+use ui::theme::{self, AppLanguage};
 
 use crate::message::Message;
 
@@ -12,39 +12,47 @@ pub(super) const RESULT_HEADER_FILTER_SLOT_HEIGHT: f32 = 32.0;
 pub(super) fn result_header_status<'a>(
     notice: Option<&'a Notice>,
     progress_status: Option<&'a str>,
+    language: AppLanguage,
 ) -> Option<Element<'a, Message>> {
     let mut capsules = row![].spacing(8).align_y(Alignment::Center);
     let mut has_capsule = false;
 
     if let Some(status) = progress_status {
-        capsules = capsules.push(progress_capsule(compact_progress_message(status)));
+        capsules = capsules.push(progress_capsule(language, compact_progress_message(status)));
         has_capsule = true;
     }
 
     if let Some(notice) = notice {
-        capsules = capsules.push(notice_capsule(notice));
+        capsules = capsules.push(notice_capsule(notice, language));
         has_capsule = true;
     }
 
     has_capsule.then(|| capsules.into())
 }
 
-fn notice_capsule<'a>(notice: &'a Notice) -> Element<'a, Message> {
+fn localized(language: AppLanguage, chinese: &'static str, english: &'static str) -> &'static str {
+    match language {
+        AppLanguage::Chinese => chinese,
+        AppLanguage::English => english,
+    }
+}
+
+fn notice_capsule<'a>(notice: &'a Notice, language: AppLanguage) -> Element<'a, Message> {
     let (label, tone, background, border_color) = match notice.tone {
         NoticeTone::Success => (
-            "成功",
+            localized(language, "成功", "Success"),
             ui::theme::colors::rgb(0x16, 0xA3, 0x4A),
             ui::theme::colors::rgba(0x16, 0xA3, 0x4A, 0.10),
             ui::theme::colors::rgba(0x16, 0xA3, 0x4A, 0.24),
         ),
         NoticeTone::Warning => (
-            "提示",
+            localized(language, "提示", "Notice"),
             ui::theme::colors::rgb(0xD9, 0x77, 0x06),
             ui::theme::colors::rgba(0xF5, 0x9E, 0x0B, 0.12),
             ui::theme::colors::rgba(0xF5, 0x9E, 0x0B, 0.24),
         ),
         NoticeTone::Error => (
-            "错误",
+            localized(language, "错误", "Error"),
             ui::theme::colors::rgb(0xDC, 0x26, 0x26),
             ui::theme::colors::rgba(0xDC, 0x26, 0x26, 0.10),
             ui::theme::colors::rgba(0xDC, 0x26, 0x26, 0.24),
@@ -53,16 +61,16 @@ fn notice_capsule<'a>(notice: &'a Notice) -> Element<'a, Message> {
 
     status_capsule(
         label,
-        compact_notice_message(notice),
+        compact_notice_message(notice, language),
         tone,
         background,
         border_color,
     )
 }
 
-fn progress_capsule<'a>(message: String) -> Element<'a, Message> {
+fn progress_capsule<'a>(language: AppLanguage, message: String) -> Element<'a, Message> {
     status_capsule(
-        "连接中",
+        localized(language, "连接中", "Working"),
         message,
         ui::theme::colors::BRAND_BLUE,
         ui::theme::colors::rgba(0x3B, 0x82, 0xF6, 0.08),
@@ -104,71 +112,22 @@ fn status_capsule<'a>(
     .into()
 }
 
-fn compact_notice_message(notice: &Notice) -> String {
-    let message = notice.message.as_str();
-    let compact = match notice.tone {
-        NoticeTone::Success => {
-            if message.contains("免密") {
-                "免密准备完成"
-            } else if message.contains("已启动") {
-                "连接已启动"
-            } else {
-                "操作成功"
-            }
+fn compact_notice_message(notice: &Notice, language: AppLanguage) -> String {
+    let message = if notice.message.trim().is_empty() {
+        match notice.tone {
+            NoticeTone::Success => localized(language, "操作成功", "Operation succeeded"),
+            NoticeTone::Warning => localized(language, "请留意提示", "Check the notice"),
+            NoticeTone::Error => localized(language, "操作失败", "Operation failed"),
         }
-        NoticeTone::Warning => {
-            if message.contains("自动检测SSH凭证中") {
-                "自动验证中"
-            } else if message.contains("暂未开放") {
-                "功能暂未开放"
-            } else if message.contains("用户名") {
-                "请填写 SSH 用户名"
-            } else if message.contains("密码") {
-                "需手动输入密码"
-            } else if message.contains("认证") {
-                "认证需人工确认"
-            } else {
-                "请留意提示"
-            }
-        }
-        NoticeTone::Error => {
-            if message.contains("路径") {
-                "工具路径配置失败"
-            } else if message.contains("Docker") {
-                "Docker 操作失败"
-            } else if message.contains("启动") {
-                "连接启动失败"
-            } else if message.contains("认证") || message.contains("SSH") {
-                "SSH 认证失败"
-            } else {
-                "操作失败"
-            }
-        }
+    } else {
+        notice.message.as_str()
     };
 
-    truncate_header_text(compact, 16)
+    truncate_header_text(message, 24)
 }
 
 fn compact_progress_message(status: &str) -> String {
-    let compact = if status.contains("Docker") && status.contains("容器") {
-        "准备 Docker 容器"
-    } else if status.contains("Docker") {
-        "处理 Docker"
-    } else if status.contains("终端") {
-        "启动终端连接"
-    } else if status.contains("VS Code") {
-        "启动 VS Code"
-    } else if status.contains("MobaXterm") {
-        "启动 MobaXterm"
-    } else if status.contains("VNC") {
-        "启动 VNC"
-    } else if status.contains("连接") {
-        "启动连接"
-    } else {
-        "处理中"
-    };
-
-    truncate_header_text(compact, 16)
+    truncate_header_text(status, 24)
 }
 
 fn truncate_header_text(input: &str, max_chars: usize) -> String {

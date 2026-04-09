@@ -7,7 +7,7 @@ use ssh_core::scanner::{
 };
 
 use crate::theme::{
-    self, colors, fonts,
+    self, AppLanguage, colors, fonts,
     icons::{self, FrameSpec, Glyph},
 };
 
@@ -52,6 +52,7 @@ pub struct HelpGuideProps<Message>
 where
     Message: Clone,
 {
+    pub language: AppLanguage,
     pub on_close: Message,
     pub on_open_github: Message,
     pub show_rustdesk_section: bool,
@@ -64,6 +65,7 @@ where
     Message: Clone + 'a,
 {
     let HelpGuideProps {
+        language,
         on_close,
         on_open_github,
         show_rustdesk_section,
@@ -77,14 +79,15 @@ where
     };
 
     let steps: Element<'a, Message> = match active_section {
-        HelpGuideSection::Basic => basic_steps(),
-        HelpGuideSection::RustDesk => rustdesk_steps(on_show_rustdesk.clone()),
+        HelpGuideSection::Basic => basic_steps(language),
+        HelpGuideSection::RustDesk => rustdesk_steps(language, on_show_rustdesk.clone()),
     };
 
     let header = container(
         row![
             Space::new().width(Length::Fill),
             section_switcher(
+                language,
                 active_section,
                 on_show_basic.clone(),
                 on_show_rustdesk.clone(),
@@ -111,21 +114,46 @@ where
         .width(Fill)
         .style(theme::styles::titlebar_divider);
 
-    column![header, divider, body, footer_divider, footer(on_close, on_open_github)]
-        .width(Fill)
-        .height(Fill)
-        .into()
+    column![
+        header,
+        divider,
+        body,
+        footer_divider,
+        footer(language, on_close, on_open_github)
+    ]
+    .width(Fill)
+    .height(Fill)
+    .into()
 }
 
-fn basic_steps<'a, Message>() -> Element<'a, Message>
+fn localized(language: AppLanguage, chinese: &'static str, english: &'static str) -> &'static str {
+    match language {
+        AppLanguage::Chinese => chinese,
+        AppLanguage::English => english,
+    }
+}
+
+fn basic_steps<'a, Message>(language: AppLanguage) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
     column![
-        step_card(1, step_one_description(), scan_preview()),
-        step_card(2, step_two_description(), credential_preview()),
-        step_card(3, step_three_description(), result_list_preview()),
-        step_card(4, step_four_description(), connect_preview()),
+        step_card(1, step_one_description(language), scan_preview(language)),
+        step_card(
+            2,
+            step_two_description(language),
+            credential_preview(language)
+        ),
+        step_card(
+            3,
+            step_three_description(language),
+            result_list_preview(language)
+        ),
+        step_card(
+            4,
+            step_four_description(language),
+            connect_preview(language)
+        ),
     ]
     .spacing(28)
     .padding(iced::Padding {
@@ -138,24 +166,27 @@ where
     .into()
 }
 
-fn rustdesk_steps<'a, Message>(preview_action: Message) -> Element<'a, Message>
+fn rustdesk_steps<'a, Message>(
+    language: AppLanguage,
+    preview_action: Message,
+) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
     column![
-        rustdesk_intro(),
+        rustdesk_intro(language),
         step_card(
             1,
-            rustdesk_step_one_description(),
-            rustdesk_credential_preview(preview_action.clone()),
+            rustdesk_step_one_description(language),
+            rustdesk_credential_preview(language, preview_action.clone()),
         ),
         step_card(
             2,
-            rustdesk_step_two_description(),
-            rustdesk_quick_connect_preview(preview_action.clone()),
+            rustdesk_step_two_description(language),
+            rustdesk_quick_connect_preview(language, preview_action.clone()),
         ),
-        step_card_text_only(3, rustdesk_step_three_description(),),
-        rustdesk_troubleshooting_block(),
+        step_card_text_only(3, rustdesk_step_three_description(language),),
+        rustdesk_troubleshooting_block(language),
     ]
     .spacing(24)
     .padding(iced::Padding {
@@ -169,6 +200,7 @@ where
 }
 
 fn section_switcher<'a, Message>(
+    language: AppLanguage,
     active: HelpGuideSection,
     on_show_basic: Message,
     on_show_rustdesk: Message,
@@ -178,9 +210,13 @@ where
 {
     container(
         row![
-            section_button("基础使用", active == HelpGuideSection::Basic, on_show_basic,),
             section_button(
-                "RustDesk 使用",
+                localized(language, "基础使用", "Basics"),
+                active == HelpGuideSection::Basic,
+                on_show_basic,
+            ),
+            section_button(
+                localized(language, "RustDesk 使用", "RustDesk"),
                 active == HelpGuideSection::RustDesk,
                 on_show_rustdesk,
             ),
@@ -334,43 +370,57 @@ where
 
 // ── Step descriptions ────────────────────────────────────────────────────────
 
-fn step_one_description<'a, Message>() -> Element<'a, Message>
+fn step_one_description<'a, Message>(language: AppLanguage) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
-    description_text(
+    description_text(localized(
+        language,
         "在左侧选择要扫描的网卡（如 Wi-Fi 或以太网），点击\u{201c}开始扫描\u{201d}发现局域网内的设备。",
-    )
+        "Choose a network interface on the left, such as Wi-Fi or Ethernet, then click “Start Scan” to find devices on your LAN.",
+    ))
 }
 
-fn step_two_description<'a, Message>() -> Element<'a, Message>
+fn step_two_description<'a, Message>(language: AppLanguage) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
     column![
-        description_text("在\u{201c}SSH 登录凭证\u{201d}区域，可手动填写用户名和密码，或在列表中选择已保存的凭证。"),
-        description_text("如果没有填写凭证，则默认不验证；填写后扫描时自动检测。"),
+        description_text(localized(
+            language,
+            "在\u{201c}SSH 登录凭证\u{201d}区域，可手动填写用户名和密码，或在列表中选择已保存的凭证。",
+            "In the “SSH Credentials” section, you can enter a username and password manually or choose a saved credential from the list.",
+        )),
+        description_text(localized(
+            language,
+            "如果没有填写凭证，则默认不验证；填写后扫描时自动检测。",
+            "If no credential is provided, verification stays off by default. Once filled in, the app verifies automatically during scanning.",
+        )),
     ]
     .spacing(2)
     .into()
 }
 
-fn step_three_description<'a, Message>() -> Element<'a, Message>
+fn step_three_description<'a, Message>(language: AppLanguage) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
-    description_text(
+    description_text(localized(
+        language,
         "扫描完成后，右侧\u{201c}扫描结果\u{201d}会显示全部在线设备，这时状态全为\u{201c}未检测\u{201d}。",
-    )
+        "After the scan finishes, the “Scan Results” panel on the right shows every online device. At this point they all start as “Untested.”",
+    ))
 }
 
-fn step_four_description<'a, Message>() -> Element<'a, Message>
+fn step_four_description<'a, Message>(language: AppLanguage) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
-    description_text(
+    description_text(localized(
+        language,
         "检测完成后，设备显示\u{201c}就绪\u{201d}或\u{201c}拒绝\u{201d}。点击\u{201c}就绪\u{201d}设备，即可在右侧面板一键连接。",
-    )
+        "Once verification completes, devices show “Ready” or “Denied.” Select a ready device to launch tools from the quick-connect panel on the right.",
+    ))
 }
 
 fn description_text<'a, Message>(value: &'static str) -> Element<'a, Message>
@@ -388,20 +438,26 @@ where
     .into()
 }
 
-fn rustdesk_intro<'a, Message>() -> Element<'a, Message>
+fn rustdesk_intro<'a, Message>(language: AppLanguage) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
     container(
         column![
-            text("RustDesk 特性")
+            text(localized(language, "RustDesk 特性", "About RustDesk"))
                 .size(13)
                 .font(fonts::semibold())
                 .style(|theme: &Theme| theme::text_primary(theme)),
-            rustdesk_supporting_text("RustDesk 是开源远程桌面工具，通常比传统 VNC 更快，并支持文件传输。"),
-            rustdesk_supporting_text(
-                "要通过本应用做 IP 直连，目标设备需先自行部署并运行 RustDesk，并在设置中启用 Direct IP。"
-            ),
+            rustdesk_supporting_text(localized(
+                language,
+                "RustDesk 是开源远程桌面工具，通常比传统 VNC 更快，并支持文件传输。",
+                "RustDesk is an open-source remote desktop tool. It is usually faster than traditional VNC and supports file transfer.",
+            )),
+            rustdesk_supporting_text(localized(
+                language,
+                "要通过本应用做 IP 直连，目标设备需先自行部署并运行 RustDesk，并在设置中启用 Direct IP。",
+                "To connect by IP through this app, the target device must already have RustDesk installed and running, with Direct IP enabled in RustDesk settings.",
+            )),
         ]
         .spacing(6),
     )
@@ -420,50 +476,68 @@ where
     .into()
 }
 
-fn rustdesk_step_one_description<'a, Message>() -> Element<'a, Message>
+fn rustdesk_step_one_description<'a, Message>(language: AppLanguage) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
     column![
-        rustdesk_body_text(
-            "先在“SSH 登录凭证”卡片里打开“RustDesk 凭证（可选）”，会出现“RustDesk 密码（可选）”输入框。"
-        ),
-        rustdesk_body_text(
-            "这是通过 IP 直连时使用的可选项：填了会在启动 RustDesk 时自动带上密码；不填也能继续连接，后续在客户端里手动输入即可。"
-        ),
-        rustdesk_body_text(
-            "RustDesk 连接不需要用户名。"
-        ),
+        rustdesk_body_text(localized(
+            language,
+            "先在“SSH 登录凭证”卡片里打开“RustDesk 凭证（可选）”，会出现“RustDesk 密码（可选）”输入框。",
+            "Enable “RustDesk Credentials (Optional)” in the SSH credentials card first. That reveals the “RustDesk Password (Optional)” field.",
+        )),
+        rustdesk_body_text(localized(
+            language,
+            "这是通过 IP 直连时使用的可选项：填了会在启动 RustDesk 时自动带上密码；不填也能继续连接，后续在客户端里手动输入即可。",
+            "This password is optional for direct IP connections. If you fill it in, the app tries to pass it to RustDesk automatically; if you leave it blank, you can still connect and enter it manually in the client later.",
+        )),
+        rustdesk_body_text(localized(
+            language,
+            "RustDesk 连接不需要用户名。",
+            "RustDesk connections do not require a username.",
+        )),
     ]
     .spacing(4)
     .width(Fill)
     .into()
 }
 
-fn rustdesk_step_two_description<'a, Message>() -> Element<'a, Message>
+fn rustdesk_step_two_description<'a, Message>(language: AppLanguage) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
     column![
-        rustdesk_body_text("在扫描结果里点击目标 IP，然后点击 RustDesk 连接。"),
-        rustdesk_body_text(
-            "预览使用的是右侧真实快速连接区，只显示当前选中设备信息与 RustDesk 按钮。"
-        ),
+        rustdesk_body_text(localized(
+            language,
+            "在扫描结果里点击目标 IP，然后点击 RustDesk 连接。",
+            "Select the target IP in the scan results, then click the RustDesk launcher.",
+        )),
+        rustdesk_body_text(localized(
+            language,
+            "预览使用的是右侧真实快速连接区，只显示当前选中设备信息与 RustDesk 按钮。",
+            "The preview below mirrors the real quick-connect panel on the right, showing only the selected device info and the RustDesk button.",
+        )),
     ]
     .spacing(4)
     .width(Fill)
     .into()
 }
 
-fn rustdesk_step_three_description<'a, Message>() -> Element<'a, Message>
+fn rustdesk_step_three_description<'a, Message>(language: AppLanguage) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
     column![
-        rustdesk_body_text("点击后应用会自动启动 RustDesk 客户端，并尝试连接到该目标 IP。"),
-        rustdesk_body_text(
-            "若已填写 RustDesk 密码，会自动带入；若未填写，则在客户端内手动输入密码后进入桌面。"
-        ),
+        rustdesk_body_text(localized(
+            language,
+            "点击后应用会自动启动 RustDesk 客户端，并尝试连接到该目标 IP。",
+            "After you click it, the app launches the RustDesk client and attempts to connect to that IP.",
+        )),
+        rustdesk_body_text(localized(
+            language,
+            "若已填写 RustDesk 密码，会自动带入；若未填写，则在客户端内手动输入密码后进入桌面。",
+            "If a RustDesk password is available, the app tries to pass it in automatically. Otherwise, enter it manually in the client before opening the desktop session.",
+        )),
     ]
     .spacing(4)
     .width(Fill)
@@ -494,7 +568,7 @@ where
 
 // ── Step 1: Scan preview ─────────────────────────────────────────────────────
 
-fn scan_preview<'a, Message>() -> Element<'a, Message>
+fn scan_preview<'a, Message>(language: AppLanguage) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
@@ -503,7 +577,7 @@ where
             // Title row
             row![
                 icons::centered(Glyph::Network, 18.0, 14.0, colors::rgb(0x1F, 0x29, 0x37)),
-                text("扫描网络")
+                text(localized(language, "扫描网络", "Scan Network"))
                     .size(13)
                     .font(fonts::semibold())
                     .style(|theme: &Theme| theme::text_primary(theme)),
@@ -515,7 +589,7 @@ where
             // Network dropdown
             input_row_with_icon(Glyph::Wifi, "Wi-Fi (Home) (192.168.1.0/24)"),
             // Scan button
-            mini_blue_button("开始扫描"),
+            mini_blue_button(localized(language, "开始扫描", "Start Scan")),
         ]
         .spacing(10),
     ))
@@ -525,7 +599,7 @@ where
 
 // ── Step 2: Credential preview ───────────────────────────────────────────────
 
-fn credential_preview<'a, Message>() -> Element<'a, Message>
+fn credential_preview<'a, Message>(language: AppLanguage) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
@@ -534,12 +608,12 @@ where
             // Title row
             row![
                 icons::centered(Glyph::Lock, 18.0, 16.0, colors::rgb(0x1F, 0x29, 0x37)),
-                text("SSH 登录凭证")
+                text(localized(language, "SSH 登录凭证", "SSH Credentials"))
                     .size(13)
                     .font(fonts::semibold())
                     .style(|theme: &Theme| theme::text_primary(theme)),
                 Space::new().width(Fill),
-                text("管理")
+                text(localized(language, "管理", "Manage"))
                     .size(12)
                     .font(fonts::semibold())
                     .style(|_| theme::solid_text(colors::BRAND_BLUE)),
@@ -557,22 +631,33 @@ where
     .into()
 }
 
-fn rustdesk_credential_preview<'a, Message>(preview_action: Message) -> Element<'a, Message>
+fn rustdesk_credential_preview<'a, Message>(
+    language: AppLanguage,
+    preview_action: Message,
+) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
     container(mini_card(
         column![
             row![
-                text("RustDesk凭证（可选）")
-                    .size(13)
-                    .font(fonts::semibold())
-                    .style(|theme: &Theme| theme::text_primary(theme)),
+                text(localized(
+                    language,
+                    "RustDesk凭证（可选）",
+                    "RustDesk Credentials (Optional)",
+                ))
+                .size(13)
+                .font(fonts::semibold())
+                .style(|theme: &Theme| theme::text_primary(theme)),
                 Space::new().width(Fill),
                 crate::widgets::toggle::view(true, Some(preview_action)),
             ]
             .align_y(Alignment::Center),
-            input_row_text("RustDesk 密码（可选）"),
+            input_row_text(localized(
+                language,
+                "RustDesk 密码（可选）",
+                "RustDesk Password (Optional)",
+            )),
         ]
         .spacing(10),
     ))
@@ -661,7 +746,10 @@ where
     .into()
 }
 
-fn rustdesk_quick_connect_preview<'a, Message>(preview_action: Message) -> Element<'a, Message>
+fn rustdesk_quick_connect_preview<'a, Message>(
+    _language: AppLanguage,
+    preview_action: Message,
+) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
@@ -703,7 +791,7 @@ where
     .into()
 }
 
-fn rustdesk_troubleshooting_block<'a, Message>() -> Element<'a, Message>
+fn rustdesk_troubleshooting_block<'a, Message>(language: AppLanguage) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
@@ -713,21 +801,39 @@ where
                 .width(Fill)
                 .style(theme::styles::titlebar_divider),
             column![
-                text("可能遇到的问题")
+                text(localized(language, "可能遇到的问题", "If It Does Not Connect"))
                     .size(14)
                     .font(fonts::semibold())
                     .style(|theme: &Theme| theme::text_primary(theme)),
-                rustdesk_supporting_text("若连接失败，可按以下方向依次排查。"),
+                rustdesk_supporting_text(localized(
+                    language,
+                    "若连接失败，可按以下方向依次排查。",
+                    "If the connection fails, check the following items in order.",
+                )),
             ]
             .spacing(4),
             container(
                 column![
-                    rustdesk_failure_hint("目标设备未部署 RustDesk，或服务未运行。"),
-                    rustdesk_failure_hint("目标设备默认端口 21118 不可达。"),
-                    rustdesk_failure_hint("目标设备未在 RustDesk 设置中启用 Direct IP。"),
-                    rustdesk_failure_hint(
-                        "部分无显示输出设备需配置虚拟显示器（dummy display）后再连接。"
-                    ),
+                    rustdesk_failure_hint(localized(
+                        language,
+                        "目标设备未部署 RustDesk，或服务未运行。",
+                        "RustDesk is not installed on the target device, or the service is not running.",
+                    )),
+                    rustdesk_failure_hint(localized(
+                        language,
+                        "目标设备默认端口 21118 不可达。",
+                        "The default target port 21118 is unreachable.",
+                    )),
+                    rustdesk_failure_hint(localized(
+                        language,
+                        "目标设备未在 RustDesk 设置中启用 Direct IP。",
+                        "Direct IP is not enabled in the target device's RustDesk settings.",
+                    )),
+                    rustdesk_failure_hint(localized(
+                        language,
+                        "部分无显示输出设备需配置虚拟显示器（dummy display）后再连接。",
+                        "Some headless devices need a dummy display configured before a remote desktop session can open.",
+                    )),
                 ]
                 .spacing(10),
             )
@@ -781,14 +887,15 @@ where
 
 // ── Step 3: Result list preview ───────────────────────────────────────────────
 
-fn result_list_preview<'a, Message>() -> Element<'a, Message>
+fn result_list_preview<'a, Message>(language: AppLanguage) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
     container(mini_card_with_header(
-        "扫描结果",
+        localized(language, "扫描结果", "Scan Results"),
         column![
             result_device_row(
+                language,
                 Glyph::Desktop,
                 "Windows-Desktop",
                 "192.168.1.105",
@@ -796,6 +903,7 @@ where
                 false
             ),
             result_device_row(
+                language,
                 Glyph::Server,
                 "Ubuntu-Server",
                 "192.168.1.42",
@@ -803,6 +911,7 @@ where
                 false
             ),
             result_device_row(
+                language,
                 Glyph::Desktop,
                 "MacBook-Pro-M2",
                 "192.168.1.10",
@@ -819,12 +928,12 @@ where
 
 // ── Step 4: Connect preview ───────────────────────────────────────────────────
 
-fn connect_preview<'a, Message>() -> Element<'a, Message>
+fn connect_preview<'a, Message>(language: AppLanguage) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
     container(mini_card_with_header(
-        "扫描结果",
+        localized(language, "扫描结果", "Scan Results"),
         row![
             // Left: simplified device list (icon + name + status dot, no IP)
             column![
@@ -868,7 +977,11 @@ where
                     column![
                         tool_chip(Glyph::Code, "VS Code", colors::rgb(0x3B, 0x82, 0xF6)),
                         tool_chip(Glyph::Docker, "Docker", colors::rgb(0x06, 0xB6, 0xD4)),
-                        tool_chip(Glyph::Terminal, "Shell", colors::rgb(0xF9, 0x73, 0x16)),
+                        tool_chip(
+                            Glyph::Terminal,
+                            localized(language, "终端", "Shell"),
+                            colors::rgb(0xF9, 0x73, 0x16),
+                        ),
                     ]
                     .spacing(3)
                     .width(Fill),
@@ -1078,6 +1191,7 @@ enum DeviceStatus {
 }
 
 fn result_device_row<'a, Message>(
+    language: AppLanguage,
     icon: Glyph,
     name: &'static str,
     ip: &'static str,
@@ -1139,7 +1253,7 @@ where
         .spacing(1)
         .width(Fill),
         // Status badge
-        status_badge(status),
+        status_badge(language, status),
     ]
     .spacing(8)
     .align_y(Alignment::Center);
@@ -1163,25 +1277,25 @@ where
     }
 }
 
-fn status_badge<'a, Message>(status: DeviceStatus) -> Element<'a, Message>
+fn status_badge<'a, Message>(language: AppLanguage, status: DeviceStatus) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
     let (label, fg, bg, border_color) = match status {
         DeviceStatus::Untested => (
-            "未检测",
+            localized(language, "未检测", "Untested"),
             colors::rgb(0x9C, 0xA3, 0xAF),
             colors::rgba(0x9C, 0xA3, 0xAF, 0.08),
             colors::rgba(0x9C, 0xA3, 0xAF, 0.24),
         ),
         DeviceStatus::Ready => (
-            "\u{2713} 就绪",
+            localized(language, "\u{2713} 就绪", "\u{2713} Ready"),
             colors::rgb(0x10, 0xB9, 0x81),
             colors::rgba(0x10, 0xB9, 0x81, 0.08),
             colors::rgba(0x10, 0xB9, 0x81, 0.30),
         ),
         DeviceStatus::Denied => (
-            "\u{2717} 拒绝",
+            localized(language, "\u{2717} 拒绝", "\u{2717} Denied"),
             colors::rgb(0xEF, 0x44, 0x44),
             colors::rgba(0xEF, 0x44, 0x44, 0.08),
             colors::rgba(0xEF, 0x44, 0x44, 0.30),
@@ -1336,7 +1450,11 @@ where
 
 // ── Footer ───────────────────────────────────────────────────────────────────
 
-fn footer<'a, Message>(on_close: Message, on_open_github: Message) -> Element<'a, Message>
+fn footer<'a, Message>(
+    language: AppLanguage,
+    on_close: Message,
+    on_open_github: Message,
+) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
@@ -1367,7 +1485,7 @@ where
             .on_press(on_open_github),
             Space::new().width(Fill),
             button(
-                text("开始使用")
+                text(localized(language, "开始使用", "Get Started"))
                     .font(fonts::semibold())
                     .size(13)
                     .style(|_| theme::solid_text(colors::LIGHT.card)),

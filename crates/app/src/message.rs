@@ -22,6 +22,7 @@ pub struct ConnectNotice {
 #[derive(Debug, Clone)]
 pub enum Message {
     ToggleTheme,
+    ToggleLanguage,
     OpenHelpModal,
     CloseHelpModal,
     ShowHelpGuideBasic,

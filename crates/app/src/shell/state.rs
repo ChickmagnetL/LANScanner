@@ -8,7 +8,7 @@ use ssh_core::docker::Container;
 use ssh_core::network::NetworkInterface;
 use ssh_core::scanner::{Device, LayeredScanDevice, NeighborEvidence};
 use tokio_util::sync::CancellationToken;
-use ui::theme::ThemeMode;
+use ui::theme::{AppLanguage, ThemeMode};
 
 use crate::visual_check::VisualScene;
 
@@ -58,6 +58,13 @@ pub(super) enum VncCredentialSource {
 
 impl LaunchContext {
     pub(super) fn vnc_resolution_message(&self) -> Option<String> {
+        self.vnc_resolution_message_for_language(AppLanguage::Chinese)
+    }
+
+    pub(super) fn vnc_resolution_message_for_language(
+        &self,
+        language: AppLanguage,
+    ) -> Option<String> {
         if !self.vnc_requested {
             return None;
         }
@@ -65,24 +72,52 @@ impl LaunchContext {
         let mut notes = Vec::new();
 
         if self.vnc_username_source == VncCredentialFieldSource::SshFallback {
-            notes.push(String::from("VNC 用户名未单独填写，已回退 SSH 用户名"));
+            notes.push(match language {
+                AppLanguage::Chinese => String::from("VNC 用户名未单独填写，已回退 SSH 用户名"),
+                AppLanguage::English => String::from(
+                    "VNC username not provided separately; falling back to SSH username",
+                ),
+            });
         }
         if self.vnc_username_source == VncCredentialFieldSource::Unavailable {
-            notes.push(String::from("当前没有可用的 VNC 用户名"));
+            notes.push(match language {
+                AppLanguage::Chinese => String::from("当前没有可用的 VNC 用户名"),
+                AppLanguage::English => String::from("No VNC username is currently available"),
+            });
         }
         if self.vnc_password_source == VncCredentialFieldSource::SshFallback {
-            notes.push(String::from("VNC 密码未单独填写，已回退 SSH 密码"));
+            notes.push(match language {
+                AppLanguage::Chinese => String::from("VNC 密码未单独填写，已回退 SSH 密码"),
+                AppLanguage::English => String::from(
+                    "VNC password not provided separately; falling back to SSH password",
+                ),
+            });
         }
         if self.vnc_password_source == VncCredentialFieldSource::Unavailable {
-            notes.push(String::from(
-                "当前没有可用的 VNC 密码，后续如需认证请手动输入",
-            ));
+            notes.push(match language {
+                AppLanguage::Chinese => {
+                    String::from("当前没有可用的 VNC 密码，后续如需认证请手动输入")
+                }
+                AppLanguage::English => {
+                    String::from("No VNC password is currently available; enter it manually if authentication is required")
+                }
+            });
         }
         if self.vnc_source == VncCredentialSource::Unavailable && notes.is_empty() {
-            notes.push(String::from("当前没有可直接复用的 VNC 凭据"));
+            notes.push(match language {
+                AppLanguage::Chinese => String::from("当前没有可直接复用的 VNC 凭据"),
+                AppLanguage::English => {
+                    String::from("There are no reusable VNC credentials available right now")
+                }
+            });
         }
 
-        (!notes.is_empty()).then(|| notes.join("；"))
+        let delimiter = match language {
+            AppLanguage::Chinese => "；",
+            AppLanguage::English => "; ",
+        };
+
+        (!notes.is_empty()).then(|| notes.join(delimiter))
     }
 }
 
@@ -107,11 +142,21 @@ impl PendingToolAction {
     }
 
     pub(super) fn status_message(&self) -> String {
+        self.status_message_for_language(AppLanguage::Chinese)
+    }
+
+    pub(super) fn status_message_for_language(&self, language: AppLanguage) -> String {
         match self {
-            Self::Direct { tool, .. } => format!("正在启动 {} 连接", tool.label()),
-            Self::DockerAttach { container, .. } => {
-                format!("正在准备 Docker 容器 {}", container.name)
-            }
+            Self::Direct { tool, .. } => match language {
+                AppLanguage::Chinese => format!("正在启动 {} 连接", tool.label()),
+                AppLanguage::English => format!("Launching {} connection", tool.label()),
+            },
+            Self::DockerAttach { container, .. } => match language {
+                AppLanguage::Chinese => format!("正在准备 Docker 容器 {}", container.name),
+                AppLanguage::English => {
+                    format!("Preparing Docker container {}", container.name)
+                }
+            },
         }
     }
 }
@@ -191,6 +236,7 @@ pub struct ShellApp {
     pub(super) verify_completed_count: usize,
     pub(super) networks_signature: u64,
     pub(super) spinner_phase: usize,
+    pub(super) app_language: AppLanguage,
     pub(super) theme_mode: ThemeMode,
     pub(super) window_id: Option<iced::window::Id>,
     pub(super) is_window_maximized: bool,

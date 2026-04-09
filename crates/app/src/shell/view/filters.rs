@@ -1,6 +1,6 @@
 use iced::widget::{Space, button, container, row, text};
 use iced::{Alignment, Element, Length, Theme, border};
-use ui::theme::{self, colors};
+use ui::theme::{self, AppLanguage, colors};
 
 use crate::message::Message;
 
@@ -17,12 +17,12 @@ pub(super) fn scan_result_filter_controls(app: &ShellApp) -> Element<'_, Message
     container(
         row![
             scan_result_filter_button(
-                "全部在线",
+                localized(app.app_language, "全部在线", "All Online"),
                 app.scan_result_filter == ScanResultFilter::AllOnline,
                 Message::ShowAllOnlineResults
             ),
             scan_result_filter_button(
-                "SSH",
+                localized(app.app_language, "SSH", "SSH"),
                 app.scan_result_filter == ScanResultFilter::SshReady,
                 Message::ShowSshReadyResults
             ),
@@ -98,4 +98,11 @@ fn scan_result_filter_button<'a>(
     })
     .on_press_maybe((!is_active).then_some(message))
     .into()
+}
+
+fn localized(language: AppLanguage, chinese: &'static str, english: &'static str) -> &'static str {
+    match language {
+        AppLanguage::Chinese => chinese,
+        AppLanguage::English => english,
+    }
 }

@@ -22,6 +22,7 @@ pub const DROPDOWN_CHEVRON_GLYPH: f32 = 14.0;
 const SUN_ASSET: &[u8] = include_bytes!("../../../../icon/sun.svg");
 const MOON_ASSET: &[u8] = include_bytes!("../../../../icon/moon.svg");
 const HELP_ASSET: &[u8] = include_bytes!("../../../../icon/circle-question-mark.svg");
+const LANGUAGES_ASSET: &[u8] = include_bytes!("../../../../icon/languages.svg");
 const LOCK_ASSET: &[u8] = include_bytes!("../../../../icon/lock.svg");
 const SETTINGS_2_ASSET: &[u8] = include_bytes!("../../../../icon/settings-2.svg");
 const KEY_ROUND_ASSET: &[u8] = include_bytes!("../../../../icon/key-round.svg");
@@ -59,6 +60,7 @@ pub enum Glyph {
     Sun,
     Moon,
     Help,
+    Languages,
     Lock,
     SlidersHorizontal,
     Pencil,
@@ -510,6 +512,7 @@ fn glyph_bytes(kind: Glyph) -> &'static [u8] {
         Glyph::Sun => SUN_ASSET,
         Glyph::Moon => MOON_ASSET,
         Glyph::Help => HELP_ASSET,
+        Glyph::Languages => LANGUAGES_ASSET,
         Glyph::Lock => LOCK_ASSET,
         Glyph::SlidersHorizontal => SETTINGS_2_ASSET,
         Glyph::Pencil => PENCIL_ASSET,

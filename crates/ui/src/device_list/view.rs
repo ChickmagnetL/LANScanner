@@ -3,7 +3,7 @@ use iced::{Alignment, Element, Fill, Length, Theme, border};
 use ssh_core::scanner::{Device, DeviceStatus, DeviceType};
 
 use crate::theme::{
-    self, colors, fonts,
+    self, AppLanguage, colors, fonts,
     icons::{self, FrameSpec, Glyph},
 };
 
@@ -28,13 +28,14 @@ enum PlaceholderVisual {
 pub fn view<'a, Message>(
     devices: &'a [Device],
     selected_device_id: Option<&'a str>,
+    app_language: AppLanguage,
     on_select: impl Fn(String) -> Message + Copy + 'a,
 ) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
     if devices.is_empty() {
-        return placeholder(PlaceholderState::EmptyResults);
+        return placeholder(PlaceholderState::EmptyResults, app_language);
     }
 
     let items = devices.iter().fold(
@@ -67,7 +68,7 @@ where
                     .width(Fill)
                     .align_y(Alignment::Center),
                     Space::new().width(Length::Shrink),
-                    status_badge(device.status),
+                    status_badge(device.status, app_language),
                 ]
                 .height(64.0)
                 .align_y(Alignment::Center),
@@ -169,11 +170,14 @@ where
     .into()
 }
 
-pub fn placeholder<'a, Message>(state: PlaceholderState) -> Element<'a, Message>
+pub fn placeholder<'a, Message>(
+    state: PlaceholderState,
+    app_language: AppLanguage,
+) -> Element<'a, Message>
 where
     Message: 'a,
 {
-    container(empty_state_panel(state))
+    container(empty_state_panel(state, app_language))
         .width(Fill)
         .height(Fill)
         .center_x(Fill)
@@ -182,41 +186,44 @@ where
         .into()
 }
 
-fn empty_state_panel<'a, Message: 'a>(state: PlaceholderState) -> Element<'a, Message> {
+fn empty_state_panel<'a, Message: 'a>(
+    state: PlaceholderState,
+    app_language: AppLanguage,
+) -> Element<'a, Message> {
     if matches!(state, PlaceholderState::Idle) {
-        return idle_state_panel();
+        return idle_state_panel(app_language);
     }
 
     let (visual, chip_label, accent, title, description) = match state {
         PlaceholderState::Idle => unreachable!(),
         PlaceholderState::RefreshingNetworks { spinner_frame } => (
             PlaceholderVisual::RotatingRefresh(spinner_frame),
-            "同步网卡",
+            refreshing_networks_chip_label(app_language),
             colors::rgb(0x3B, 0x82, 0xF6),
-            "正在准备扫描上下文",
-            String::from("正在读取本机网络接口与目标网段，完成后即可选择可扫描网卡。"),
+            refreshing_networks_title(app_language),
+            refreshing_networks_description(app_language),
         ),
         PlaceholderState::Scanning {
             spinner_frame,
             progress,
         } => (
             PlaceholderVisual::RotatingRefresh(spinner_frame),
-            "扫描进行中",
+            scanning_chip_label(app_language),
             colors::rgb(0x3B, 0x82, 0xF6),
-            "结果列表等待回填",
+            scanning_title(app_language),
             match progress {
                 Some((scanned, total)) if total > 0 => {
-                    format!("当前扫描进度 {scanned}/{total}，发现的设备会在这里逐步回到列表。")
+                    scanning_progress_description(app_language, scanned, total)
                 }
-                _ => String::from("扫描任务刚刚启动，正在建立目标列表并等待第一批结果返回。"),
+                _ => scanning_description(app_language),
             },
         ),
         PlaceholderState::EmptyResults => (
             PlaceholderVisual::Glyph(Glyph::Search),
-            "本轮未发现设备",
+            empty_results_chip_label(app_language),
             colors::rgb(0xEA, 0x58, 0x0C),
-            "列表保持为空",
-            String::from("当前网段没有发现开放 SSH 端口的设备，可以切换网卡或稍后重新扫描。"),
+            empty_results_title(app_language),
+            empty_results_description(app_language),
         ),
     };
 
@@ -251,7 +258,7 @@ fn empty_state_panel<'a, Message: 'a>(state: PlaceholderState) -> Element<'a, Me
     .into()
 }
 
-fn idle_state_panel<'a, Message: 'a>() -> Element<'a, Message> {
+fn idle_state_panel<'a, Message: 'a>(app_language: AppLanguage) -> Element<'a, Message> {
     const PANEL_WIDTH: f32 = 208.0;
     const ICON_SIZE: f32 = 58.0;
     const ICON_GLYPH: f32 = 20.0;
@@ -277,7 +284,7 @@ fn idle_state_panel<'a, Message: 'a>() -> Element<'a, Message> {
         column![
             container(icon).width(Fill).center_x(Fill),
             container(
-                text("尚未进行扫描")
+                text(idle_state_title(app_language))
                     .font(fonts::semibold())
                     .size(TITLE_SIZE)
                     .style(move |_| theme::solid_text(tone)),
@@ -372,17 +379,26 @@ fn device_icon<'a, Message: 'a>(device_type: DeviceType, selected: bool) -> Elem
     .into()
 }
 
-fn status_badge<'a, Message: 'a>(status: DeviceStatus) -> Element<'a, Message> {
+fn status_badge<'a, Message: 'a>(
+    status: DeviceStatus,
+    app_language: AppLanguage,
+) -> Element<'a, Message> {
     let (label, glyph, tone) = match status {
-        DeviceStatus::Untested => ("未检测", Glyph::Pending, colors::rgb(0x9C, 0xA3, 0xAF)),
+        DeviceStatus::Untested => (
+            status_badge_untested_label(app_language),
+            Glyph::Pending,
+            colors::rgb(0x9C, 0xA3, 0xAF),
+        ),
         DeviceStatus::Ready => (
-            "验证成功",
+            status_badge_ready_label(app_language),
             Glyph::CircleCheck,
             colors::rgb(0x22, 0xC5, 0x5E),
         ),
-        DeviceStatus::Denied | DeviceStatus::Error => {
-            ("验证失败", Glyph::CircleX, colors::rgb(0xEF, 0x44, 0x44))
-        }
+        DeviceStatus::Denied | DeviceStatus::Error => (
+            status_badge_failed_label(app_language),
+            Glyph::CircleX,
+            colors::rgb(0xEF, 0x44, 0x44),
+        ),
     };
 
     container(
@@ -441,6 +457,124 @@ fn status_badge<'a, Message: 'a>(status: DeviceStatus) -> Element<'a, Message> {
             })
     })
     .into()
+}
+
+fn idle_state_title(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "尚未进行扫描",
+        AppLanguage::English => "No Scan Yet",
+    }
+}
+
+fn refreshing_networks_chip_label(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "同步网卡",
+        AppLanguage::English => "Refreshing Networks",
+    }
+}
+
+fn refreshing_networks_title(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "正在准备扫描上下文",
+        AppLanguage::English => "Preparing Scan Context",
+    }
+}
+
+fn refreshing_networks_description(app_language: AppLanguage) -> String {
+    match app_language {
+        AppLanguage::Chinese => {
+            String::from("正在读取本机网络接口与目标网段，完成后即可选择可扫描网卡。")
+        }
+        AppLanguage::English => String::from(
+            "Reading local network interfaces and target subnets. You can start scanning as soon as the list is ready.",
+        ),
+    }
+}
+
+fn scanning_chip_label(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "扫描进行中",
+        AppLanguage::English => "Scanning",
+    }
+}
+
+fn scanning_title(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "结果列表等待回填",
+        AppLanguage::English => "Waiting For Results",
+    }
+}
+
+fn scanning_description(app_language: AppLanguage) -> String {
+    match app_language {
+        AppLanguage::Chinese => {
+            String::from("扫描任务刚刚启动，正在建立目标列表并等待第一批结果返回。")
+        }
+        AppLanguage::English => String::from(
+            "The scan has just started. Building the target list and waiting for the first results.",
+        ),
+    }
+}
+
+fn scanning_progress_description(
+    app_language: AppLanguage,
+    scanned: usize,
+    total: usize,
+) -> String {
+    match app_language {
+        AppLanguage::Chinese => {
+            format!("当前扫描进度 {scanned}/{total}，发现的设备会在这里逐步回到列表。")
+        }
+        AppLanguage::English => format!(
+            "Progress {scanned}/{total}. Newly discovered devices will appear here as the scan continues."
+        ),
+    }
+}
+
+fn empty_results_chip_label(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "本轮未发现设备",
+        AppLanguage::English => "No Devices Found",
+    }
+}
+
+fn empty_results_title(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "列表保持为空",
+        AppLanguage::English => "The List Is Empty",
+    }
+}
+
+fn empty_results_description(app_language: AppLanguage) -> String {
+    match app_language {
+        AppLanguage::Chinese => {
+            String::from("当前网段没有发现开放 SSH 端口的设备，可以切换网卡或稍后重新扫描。")
+        }
+        AppLanguage::English => String::from(
+            "No devices with an open SSH port were found on this subnet. Try another interface or scan again later.",
+        ),
+    }
+}
+
+fn status_badge_untested_label(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "未检测",
+        AppLanguage::English => "Untested",
+    }
+}
+
+fn status_badge_ready_label(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "验证成功",
+        AppLanguage::English => "Ready",
+    }
+}
+
+fn status_badge_failed_label(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "验证失败",
+        AppLanguage::English => "Failed",
+    }
 }
 
 fn status_chip<'a, Message: 'a>(

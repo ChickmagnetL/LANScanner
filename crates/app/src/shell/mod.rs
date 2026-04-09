@@ -622,6 +622,11 @@ impl ShellApp {
                 self.theme_mode = self.theme_mode.toggle();
                 Task::none()
             }
+            Message::ToggleLanguage => {
+                self.close_overlays();
+                self.app_language = self.app_language.toggle();
+                Task::none()
+            }
             Message::OpenHelpModal => update::modal::handle_open_help_modal(self),
             Message::CloseHelpModal => update::modal::handle_close_help_modal(self),
             Message::ShowHelpGuideBasic => update::modal::handle_show_help_guide_basic(self),

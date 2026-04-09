@@ -4,7 +4,7 @@ use ssh_core::credential::Credential;
 use std::rc::Rc;
 
 use crate::theme::{
-    self, colors, fonts,
+    self, AppLanguage, colors, fonts,
     icons::{self, Glyph},
 };
 
@@ -18,6 +18,7 @@ where
     UsernameInput: Fn(String) -> Message + 'a,
     PasswordInput: Fn(String) -> Message + 'a,
 {
+    pub language: AppLanguage,
     pub credentials: &'a [Credential],
     pub editing_username: Option<&'a str>,
     pub username: &'a str,
@@ -43,6 +44,7 @@ where
     Message: Clone + 'a,
 {
     let CredentialManagementProps {
+        language,
         credentials,
         editing_username,
         username,
@@ -100,7 +102,7 @@ where
                     let password_input = Rc::clone(&list_password_input);
                     item_body = item_body.push(divider()).push(
                         row![
-                            text_input("新密码", password)
+                            text_input(localized(language, "新密码", "New Password"), password)
                                 .on_input(move |value| (*password_input)(value))
                                 .secure(true)
                                 .padding([8, 10])
@@ -124,10 +126,14 @@ where
 
     let header = container(
         row![
-            text("管理 SSH 凭证")
-                .font(fonts::semibold())
-                .size(15)
-                .style(|theme: &Theme| theme::text_primary(theme)),
+            text(localized(
+                language,
+                "管理 SSH 凭证",
+                "Manage SSH Credentials"
+            ))
+            .font(fonts::semibold())
+            .size(15)
+            .style(|theme: &Theme| theme::text_primary(theme)),
             Space::new().width(Length::Fill),
             close_button(on_close.clone()),
         ]
@@ -140,7 +146,7 @@ where
         .style(theme::styles::titlebar_divider);
 
     let username_field = if is_editing {
-        text_input("用户名", "")
+        text_input(localized(language, "用户名", "Username"), "")
             .padding([9, 12])
             .size(13)
             .font(fonts::body())
@@ -148,7 +154,7 @@ where
             .width(Fill)
     } else {
         let username_input_clone = Rc::clone(&on_username_input);
-        text_input("用户名", username)
+        text_input(localized(language, "用户名", "Username"), username)
             .on_input(move |value| (*username_input_clone)(value))
             .padding([9, 12])
             .size(13)
@@ -158,7 +164,7 @@ where
     };
 
     let password_field = if is_editing {
-        text_input("密码", "")
+        text_input(localized(language, "密码", "Password"), "")
             .secure(true)
             .padding([9, 12])
             .size(13)
@@ -167,7 +173,7 @@ where
             .width(Fill)
     } else {
         let password_input_clone = Rc::clone(&on_password_input);
-        text_input("密码", password)
+        text_input(localized(language, "密码", "Password"), password)
             .on_input(move |value| (*password_input_clone)(value))
             .secure(true)
             .padding([9, 12])
@@ -178,7 +184,7 @@ where
     };
 
     let list_section = column![
-        section_title("已保存的凭证"),
+        section_title(localized(language, "已保存的凭证", "Saved Credentials")),
         scrollable(saved_credentials)
             .height(Length::Fixed(if is_editing {
                 EDITING_LIST_HEIGHT
@@ -190,10 +196,10 @@ where
     .spacing(SECTION_SPACING);
 
     let add_section = column![
-        section_title("添加新凭证"),
+        section_title(localized(language, "添加新凭证", "Add Credential")),
         username_field,
         password_field,
-        add_save_button(if is_editing { None } else { on_save.clone() }),
+        add_save_button(language, if is_editing { None } else { on_save.clone() }),
     ]
     .spacing(SECTION_SPACING);
 
@@ -202,8 +208,11 @@ where
             .width(Fill)
             .style(footer_divider_style),
         container(
-            row![Space::new().width(Length::Fill), done_button(on_close),]
-                .align_y(Alignment::Center)
+            row![
+                Space::new().width(Length::Fill),
+                done_button(language, on_close),
+            ]
+            .align_y(Alignment::Center)
         )
         .padding([12, 20])
         .style(footer_style),
@@ -235,6 +244,13 @@ where
     ]
     .width(Fill)
     .into()
+}
+
+fn localized(language: AppLanguage, chinese: &'static str, english: &'static str) -> &'static str {
+    match language {
+        AppLanguage::Chinese => chinese,
+        AppLanguage::English => english,
+    }
 }
 
 fn divider<'a, Message: 'a>() -> Element<'a, Message> {
@@ -415,7 +431,10 @@ where
     .into()
 }
 
-fn add_save_button<'a, Message>(on_press: Option<Message>) -> Element<'a, Message>
+fn add_save_button<'a, Message>(
+    language: AppLanguage,
+    on_press: Option<Message>,
+) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
@@ -436,7 +455,7 @@ where
         container(
             row![
                 icons::centered(Glyph::Plus, 16.0, 12.0, icon_tone),
-                text("保存凭证")
+                text(localized(language, "保存凭证", "Save Credential"))
                     .font(fonts::semibold())
                     .size(13)
                     .style(move |_| theme::solid_text(label_tone)),
@@ -482,12 +501,12 @@ where
     .into()
 }
 
-fn done_button<'a, Message>(on_press: Message) -> Element<'a, Message>
+fn done_button<'a, Message>(language: AppLanguage, on_press: Message) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
     button(
-        text("完成")
+        text(localized(language, "完成", "Done"))
             .font(fonts::semibold())
             .size(13)
             .style(|_| theme::solid_text(colors::LIGHT.card)),

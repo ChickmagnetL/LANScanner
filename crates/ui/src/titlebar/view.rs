@@ -3,7 +3,7 @@ use iced::{Alignment, Element, Fill, Font, Length, Padding, Theme, alignment::Ho
 use platform::window::WindowAction;
 
 use crate::theme::{
-    self, ThemeMode, colors, fonts,
+    self, AppLanguage, ThemeMode, colors, fonts,
     icons::{self, FrameSpec, Glyph},
 };
 
@@ -34,9 +34,11 @@ enum ButtonRole {
 
 pub fn view<'a, Message>(
     theme_mode: ThemeMode,
+    app_language: AppLanguage,
     is_maximized: bool,
     on_toggle_theme: Message,
     on_help: Message,
+    on_toggle_language: Message,
     on_window_action: impl Fn(WindowAction) -> Message + Copy + 'a,
 ) -> Element<'a, Message>
 where
@@ -48,10 +50,20 @@ where
         Glyph::Moon
     };
 
+    let language_icon = match app_language {
+        AppLanguage::Chinese | AppLanguage::English => Glyph::Languages,
+    };
+
     let left_tools = side_slot(
         row![
             icon_button(theme_mode, theme_icon, on_toggle_theme, ButtonRole::Tool),
             icon_button(theme_mode, Glyph::Help, on_help, ButtonRole::Tool),
+            icon_button(
+                theme_mode,
+                language_icon,
+                on_toggle_language,
+                ButtonRole::Tool,
+            ),
         ]
         .spacing(TITLEBAR_TOOL_SPACING)
         .align_y(Alignment::Center)

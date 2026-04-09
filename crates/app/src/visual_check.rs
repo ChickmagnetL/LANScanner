@@ -4,6 +4,7 @@ use ssh_core::credential::Credential;
 use ssh_core::docker::Container;
 use ssh_core::network::{InterfaceType, NetworkInterface};
 use ssh_core::scanner::{Device, DeviceIdentityKind, DeviceStatus, DeviceType};
+use ui::theme::AppLanguage;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VisualScene {
@@ -126,6 +127,7 @@ pub enum VisualModalPreset {
 
 #[derive(Debug, Clone)]
 pub struct VisualScenePreset {
+    pub language: AppLanguage,
     pub dark_mode: bool,
     pub networks: Vec<NetworkInterface>,
     pub selected_network_id: Option<String>,
@@ -154,7 +156,8 @@ pub struct VisualScenePreset {
 }
 
 pub fn scene_preset(scene: VisualScene, credentials: &[Credential]) -> VisualScenePreset {
-    let base_networks = sample_networks();
+    let language = scene_language(scene);
+    let base_networks = sample_networks(language);
     let base_selected_network_id = base_networks.first().map(|network| network.id.clone());
     let default_selected_username = preferred_username(credentials, "root");
     let default_ssh_username = default_selected_username.clone().unwrap_or_default();
@@ -165,6 +168,7 @@ pub fn scene_preset(scene: VisualScene, credentials: &[Credential]) -> VisualSce
 
     match scene {
         VisualScene::Idle => VisualScenePreset {
+            language,
             dark_mode: false,
             networks: base_networks.clone(),
             selected_network_id: base_selected_network_id.clone(),
@@ -192,6 +196,7 @@ pub fn scene_preset(scene: VisualScene, credentials: &[Credential]) -> VisualSce
             notice: None,
         },
         VisualScene::DarkMode => VisualScenePreset {
+            language,
             dark_mode: true,
             networks: base_networks.clone(),
             selected_network_id: base_selected_network_id.clone(),
@@ -219,6 +224,7 @@ pub fn scene_preset(scene: VisualScene, credentials: &[Credential]) -> VisualSce
             notice: None,
         },
         VisualScene::Scanning => VisualScenePreset {
+            language,
             dark_mode: false,
             networks: base_networks.clone(),
             selected_network_id: base_selected_network_id.clone(),
@@ -246,6 +252,7 @@ pub fn scene_preset(scene: VisualScene, credentials: &[Credential]) -> VisualSce
             notice: None,
         },
         VisualScene::Verifying => VisualScenePreset {
+            language,
             dark_mode: false,
             networks: base_networks.clone(),
             selected_network_id: base_selected_network_id.clone(),
@@ -270,7 +277,12 @@ pub fn scene_preset(scene: VisualScene, credentials: &[Credential]) -> VisualSce
             new_credential_username: String::new(),
             new_credential_password: String::new(),
             connection_status: None,
-            notice: Some(String::from("扫描完成后自动检测SSH凭证中")),
+            notice: Some(match language {
+                AppLanguage::Chinese => String::from("扫描完成后自动检测SSH凭证中"),
+                AppLanguage::English => {
+                    String::from("Scan complete. Automatically verifying SSH credentials")
+                }
+            }),
         },
         VisualScene::SelectedDevice => {
             let devices = sample_devices();
@@ -281,6 +293,7 @@ pub fn scene_preset(scene: VisualScene, credentials: &[Credential]) -> VisualSce
                 .map(|device| device.id.clone());
 
             VisualScenePreset {
+                language,
                 dark_mode: false,
                 networks: base_networks.clone(),
                 selected_network_id: base_selected_network_id.clone(),
@@ -309,6 +322,7 @@ pub fn scene_preset(scene: VisualScene, credentials: &[Credential]) -> VisualSce
             }
         }
         VisualScene::NetworkDropdown => VisualScenePreset {
+            language,
             dark_mode: false,
             networks: base_networks.clone(),
             selected_network_id: base_selected_network_id.clone(),
@@ -344,6 +358,7 @@ pub fn scene_preset(scene: VisualScene, credentials: &[Credential]) -> VisualSce
                 .unwrap_or_default();
 
             VisualScenePreset {
+                language,
                 dark_mode: false,
                 networks: base_networks.clone(),
                 selected_network_id: base_selected_network_id.clone(),
@@ -377,6 +392,7 @@ pub fn scene_preset(scene: VisualScene, credentials: &[Credential]) -> VisualSce
             let ssh_username = selected_username.clone().unwrap_or_default();
 
             VisualScenePreset {
+                language,
                 dark_mode: false,
                 networks: base_networks.clone(),
                 selected_network_id: base_selected_network_id.clone(),
@@ -413,6 +429,7 @@ pub fn scene_preset(scene: VisualScene, credentials: &[Credential]) -> VisualSce
                 .map(|device| device.id.clone());
 
             VisualScenePreset {
+                language,
                 dark_mode: matches!(scene, VisualScene::HelpModalDark),
                 networks: base_networks.clone(),
                 selected_network_id: base_selected_network_id.clone(),
@@ -449,9 +466,10 @@ pub fn scene_preset(scene: VisualScene, credentials: &[Credential]) -> VisualSce
                 .find(|device| device.status == DeviceStatus::Ready)
                 .or_else(|| devices.first())
                 .map(|device| device.id.clone());
-            let containers = sample_containers();
+            let containers = sample_containers(language);
 
             VisualScenePreset {
+                language,
                 dark_mode: false,
                 networks: base_networks.clone(),
                 selected_network_id: base_selected_network_id.clone(),
@@ -483,6 +501,7 @@ pub fn scene_preset(scene: VisualScene, credentials: &[Credential]) -> VisualSce
             }
         }
         VisualScene::CredentialModal => VisualScenePreset {
+            language,
             dark_mode: false,
             networks: base_networks.clone(),
             selected_network_id: base_selected_network_id.clone(),
@@ -516,6 +535,7 @@ pub fn scene_preset(scene: VisualScene, credentials: &[Credential]) -> VisualSce
             let ssh_username = default_selected_username.clone().unwrap_or_default();
 
             VisualScenePreset {
+                language,
                 dark_mode: false,
                 networks: base_networks.clone(),
                 selected_network_id: base_selected_network_id,
@@ -546,6 +566,22 @@ pub fn scene_preset(scene: VisualScene, credentials: &[Credential]) -> VisualSce
     }
 }
 
+fn scene_language(scene: VisualScene) -> AppLanguage {
+    match scene {
+        VisualScene::Verifying
+        | VisualScene::SelectedDevice
+        | VisualScene::NetworkDropdown
+        | VisualScene::UserDropdown
+        | VisualScene::RustDeskCredential
+        | VisualScene::HelpModal
+        | VisualScene::HelpModalDark
+        | VisualScene::DockerModal
+        | VisualScene::CredentialModal
+        | VisualScene::CredentialEditing => AppLanguage::English,
+        _ => AppLanguage::Chinese,
+    }
+}
+
 fn preferred_username(credentials: &[Credential], preferred: &str) -> Option<String> {
     credentials
         .iter()
@@ -572,7 +608,7 @@ pub fn default_output_dir() -> PathBuf {
     cwd.join(".visual-check")
 }
 
-fn sample_networks() -> Vec<NetworkInterface> {
+fn sample_networks(language: AppLanguage) -> Vec<NetworkInterface> {
     vec![
         NetworkInterface {
             id: String::from("wifi0"),
@@ -583,7 +619,10 @@ fn sample_networks() -> Vec<NetworkInterface> {
         },
         NetworkInterface {
             id: String::from("lan0"),
-            name: String::from("以太网 (Office)"),
+            name: match language {
+                AppLanguage::Chinese => String::from("以太网 (Office)"),
+                AppLanguage::English => String::from("Ethernet (Office)"),
+            },
             ip_range: String::from("10.0.0.0/24"),
             iface_type: InterfaceType::Ethernet,
             local_ip: String::from("10.0.0.23"),
@@ -635,20 +674,26 @@ fn sample_devices() -> Vec<Device> {
     ]
 }
 
-fn sample_containers() -> Vec<Container> {
+fn sample_containers(language: AppLanguage) -> Vec<Container> {
     vec![
         Container {
             id: String::from("b8f4d1f0a0aa"),
             name: String::from("vision-api"),
             image: String::from("ghcr.io/acme/vision-api:main"),
-            status: String::from("Up 3 hours"),
+            status: match language {
+                AppLanguage::Chinese => String::from("运行中 3 小时"),
+                AppLanguage::English => String::from("Up 3 hours"),
+            },
             is_running: true,
         },
         Container {
             id: String::from("91de5ab2d8c4"),
             name: String::from("etl-worker"),
             image: String::from("ghcr.io/acme/etl-worker:latest"),
-            status: String::from("Exited (0) 20 minutes ago"),
+            status: match language {
+                AppLanguage::Chinese => String::from("20 分钟前退出（0）"),
+                AppLanguage::English => String::from("Exited (0) 20 minutes ago"),
+            },
             is_running: false,
         },
     ]

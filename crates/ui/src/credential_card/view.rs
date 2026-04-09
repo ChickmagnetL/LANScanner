@@ -2,7 +2,7 @@ use iced::widget::{Space, button, column, container, row, stack, svg, text, text
 use iced::{Alignment, Element, Fill, Length, Theme, border};
 
 use crate::theme::{
-    self, colors, fonts,
+    self, AppLanguage, colors, fonts,
     icons::{self, Glyph},
 };
 
@@ -22,15 +22,15 @@ const SSH_INPUT_TEXT_SIZE: f32 = 14.0;
 const SSH_INPUT_VERTICAL_PADDING: u16 = INPUT_VERTICAL_PADDING;
 const TITLE_SPACING: f32 = 8.0;
 const MANAGE_BUTTON_HEIGHT: f32 = 24.0;
-const MANAGE_BUTTON_WIDTH: f32 = 56.0;
-const MANAGE_BUTTON_TEXT_OFFSET: f32 = 26.0;
+const MANAGE_BUTTON_WIDTH: f32 = 78.0;
+const MANAGE_BUTTON_TEXT_OFFSET: f32 = 28.0;
 const SECTION_TITLE_HEIGHT: f32 = 24.0;
 const RUSTDESK_SECTION_SPACING: f32 = 9.0;
 const SECTION_DIVIDER_PADDING: u16 = 8;
 const INPUT_HEIGHT: f32 = crate::widgets::dropdown::TRIGGER_HEIGHT;
 const SSH_DROPDOWN_TRIGGER_WIDTH: f32 = 38.0;
 const SSH_DROPDOWN_VERTICAL_INSET: u16 = 1;
-const MANAGE_BUTTON_ICON_ASSET: &[u8] = br#"<svg xmlns="http://www.w3.org/2000/svg" width="56" height="24" viewBox="0 0 56 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(4.8 4.2) scale(0.61)"><path d="M10 5H3" /><path d="M12 19H3" /><path d="M14 3v4" /><path d="M16 17v4" /><path d="M21 12h-9" /><path d="M21 19h-5" /><path d="M21 5h-7" /><path d="M8 10v4" /><path d="M8 12H3" /></g></svg>"#;
+const MANAGE_BUTTON_ICON_ASSET: &[u8] = br#"<svg xmlns="http://www.w3.org/2000/svg" width="78" height="24" viewBox="0 0 78 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(4.8 4.2) scale(0.61)"><path d="M10 5H3" /><path d="M12 19H3" /><path d="M14 3v4" /><path d="M16 17v4" /><path d="M21 12h-9" /><path d="M21 19h-5" /><path d="M21 5h-7" /><path d="M8 10v4" /><path d="M8 12H3" /></g></svg>"#;
 const LIGHT_INPUT_BACKGROUND: iced::Color = colors::rgb(0xF4, 0xF5, 0xF7);
 const LIGHT_INACTIVE_ICON: iced::Color = colors::rgb(0x4B, 0x55, 0x63);
 const LIGHT_TITLE_TEXT: iced::Color = colors::rgb(0x1F, 0x29, 0x37);
@@ -75,6 +75,7 @@ pub struct CredentialCardProps<
     VncUserInput: Fn(String) -> Message + 'a,
     VncPasswordInput: Fn(String) -> Message + 'a,
 {
+    pub app_language: AppLanguage,
     pub dropdown: Element<'a, Message>,
     pub is_dark_theme: bool,
     pub username: &'a str,
@@ -109,6 +110,7 @@ where
     Message: Clone + 'a,
 {
     let CredentialCardProps {
+        app_language,
         dropdown,
         is_dark_theme,
         username,
@@ -140,7 +142,7 @@ where
         row![
             row![
                 header_icon(header_icon_tone),
-                text("SSH 登录凭证")
+                text(credential_card_title(app_language))
                     .font(fonts::semibold())
                     .size(14)
                     .style(title_text_style),
@@ -148,7 +150,7 @@ where
             .spacing(TITLE_SPACING)
             .align_y(Alignment::Center),
             Space::new().width(Length::Fill),
-            manage_button(on_manage),
+            manage_button(app_language, on_manage),
         ]
         .align_y(Alignment::Center),
     )
@@ -156,7 +158,7 @@ where
 
     let vnc_fields: Element<'a, Message> = if vnc_enabled {
         column![credential_input(
-            "RustDesk 密码（可选）",
+            rustdesk_password_placeholder(app_language),
             vnc_password,
             true,
             (!is_verifying).then_some(on_vnc_password_input),
@@ -169,6 +171,7 @@ where
 
     let verify_disabled = is_verifying || !has_scanned || !has_devices || verify_action.is_none();
     let verify_button = button(verify_button_content(
+        app_language,
         is_verifying,
         spinner_frame,
         is_dark_theme,
@@ -182,6 +185,7 @@ where
     .on_press_maybe(verify_action);
 
     let ssh_username_row = merged_username_row(
+        app_language,
         username,
         dropdown,
         (!is_verifying).then_some(on_username_input),
@@ -189,13 +193,18 @@ where
 
     let ssh_fields = column![
         ssh_username_row,
-        readonly_secret_input("密码", password, on_password_input, is_verifying,),
+        readonly_secret_input(
+            password_placeholder(app_language),
+            password,
+            on_password_input,
+            is_verifying,
+        ),
     ]
     .spacing(FIELD_SPACING as f32);
 
     let rustdesk_title_row = container(
         row![
-            text("RustDesk凭证（可选）")
+            text(rustdesk_section_title(app_language))
                 .font(fonts::semibold())
                 .size(13)
                 .style(title_text_style),
@@ -241,7 +250,10 @@ fn header_icon<'a, Message: 'a>(tone: iced::Color) -> Element<'a, Message> {
         .into()
 }
 
-fn manage_button<'a, Message>(on_press: Option<Message>) -> Element<'a, Message>
+fn manage_button<'a, Message>(
+    app_language: AppLanguage,
+    on_press: Option<Message>,
+) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
@@ -250,7 +262,9 @@ where
             manage_button_icon_layer(),
             row![
                 Space::new().width(Length::Fixed(MANAGE_BUTTON_TEXT_OFFSET)),
-                text("管理").font(fonts::semibold()).size(11),
+                text(manage_button_label(app_language))
+                    .font(fonts::semibold())
+                    .size(11),
             ]
             .width(Length::Fixed(MANAGE_BUTTON_WIDTH))
             .height(Length::Fixed(MANAGE_BUTTON_HEIGHT))
@@ -329,6 +343,7 @@ fn divider<'a, Message: 'a>() -> Element<'a, Message> {
 }
 
 fn verify_button_content<'a, Message: 'a>(
+    app_language: AppLanguage,
     is_verifying: bool,
     spinner_frame: &'static str,
     is_dark_theme: bool,
@@ -342,7 +357,7 @@ fn verify_button_content<'a, Message: 'a>(
     let content: Element<'a, Message> = if is_verifying {
         row![
             icons::rotating_refresh_centered(spinner_frame, 16.0, 13.0, foreground),
-            text("检测中...")
+            text(verify_button_loading_label(app_language))
                 .font(fonts::semibold())
                 .size(13)
                 .style(move |_| theme::solid_text(foreground)),
@@ -351,7 +366,7 @@ fn verify_button_content<'a, Message: 'a>(
         .align_y(Alignment::Center)
         .into()
     } else {
-        text("检测SSH凭证")
+        text(verify_button_label(app_language))
             .font(fonts::semibold())
             .size(13)
             .style(move |_| theme::solid_text(foreground))
@@ -446,6 +461,7 @@ where
 }
 
 fn merged_username_row<'a, Message>(
+    app_language: AppLanguage,
     username: &'a str,
     dropdown: Element<'a, Message>,
     on_username_input: Option<impl Fn(String) -> Message + 'a>,
@@ -453,7 +469,7 @@ fn merged_username_row<'a, Message>(
 where
     Message: Clone + 'a,
 {
-    let username_input = text_input("用户名", username)
+    let username_input = text_input(username_placeholder(app_language), username)
         .on_input_maybe(on_username_input)
         .width(Fill)
         .size(SSH_INPUT_TEXT_SIZE)
@@ -484,6 +500,62 @@ where
     .style(merged_username_row_style)
     .clip(true)
     .into()
+}
+
+fn credential_card_title(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "SSH 登录凭证",
+        AppLanguage::English => "SSH Credentials",
+    }
+}
+
+fn manage_button_label(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "管理",
+        AppLanguage::English => "Manage",
+    }
+}
+
+fn username_placeholder(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "用户名",
+        AppLanguage::English => "Username",
+    }
+}
+
+fn password_placeholder(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "密码",
+        AppLanguage::English => "Password",
+    }
+}
+
+fn rustdesk_password_placeholder(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "RustDesk 密码（可选）",
+        AppLanguage::English => "RustDesk Password (Optional)",
+    }
+}
+
+fn rustdesk_section_title(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "RustDesk 凭证（可选）",
+        AppLanguage::English => "RustDesk Credentials",
+    }
+}
+
+fn verify_button_label(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "检测 SSH 凭证",
+        AppLanguage::English => "Verify SSH",
+    }
+}
+
+fn verify_button_loading_label(app_language: AppLanguage) -> &'static str {
+    match app_language {
+        AppLanguage::Chinese => "检测中...",
+        AppLanguage::English => "Verifying...",
+    }
 }
 
 fn merged_username_input_style(theme: &Theme, status: text_input::Status) -> text_input::Style {
