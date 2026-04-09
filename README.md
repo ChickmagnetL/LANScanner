@@ -1,7 +1,7 @@
 <p align="center">
-  <a href="./README_CN.md">中文</a> | <a href="./README.md">English</a>
+  <a href="./README_CN.md">中文</a> | English
 </p>
-<h1 align="center"><img src="./crates/app/assets/lanscanner.ico" alt="LANScanner logo" width="70" /> LANScanner</h1>
+<h1 align="center"><img src="./picture/lanscanner-readme.png" alt="LANScanner logo" width="55" align="absmiddle" /> LANScanner</h1>
 
 **Your ultimate toolkit for LAN discovery and SSH management.**
 
@@ -34,11 +34,11 @@ If you are tired of jumping between different command-line tools just to find IP
 
 2. **Choose a network:** In the "Scan Networks" tab on the left side of the application interface, click the drop-down box and select the network interface you want to scan.
 
-   ![](./picture/ChooseNetwork_EN.jpg)
+   <p align="center"><img src="./picture/ChooseNetwork_EN.jpg" alt="Choose Network" /></p>
 
 3. **Start scanning:** Click the scan button and watch devices, open ports, and detected services appear in real time.
 
-   ![Scanning](./picture/Scanning_EN.jpg)
+   <p align="center"><img src="./picture/Scanning_EN.jpg" alt="Scanning" /></p>
 
 4. **Connect to a device:**
 
@@ -46,7 +46,7 @@ If you are tired of jumping between different command-line tools just to find IP
    - Click a verified device to view the available quick-launch connection applications.
    - Click an icon in the right-side panel to open the corresponding application and connect to that device IP immediately.
 
-![connect](./picture/connect_EN.jpg)
+   <p align="center"><img src="./picture/connect_EN.jpg" alt="Connect" /></p>
 
 ---
 
@@ -85,3 +85,7 @@ The near-term roadmap currently includes:
 
 - [ ] 🍎 **macOS support**
 - [ ] 🐧 **Linux support**
+
+## Acknowledgments
+
+[Linux.Do](https://linux.do/) Community
