@@ -1,5 +1,5 @@
-use iced::widget::{Space, button, column, container, row, stack, svg, text, text_input};
-use iced::{Alignment, Element, Fill, Length, Theme, border};
+use iced::widget::{Space, button, column, container, row, svg, text, text_input};
+use iced::{Alignment, Element, Fill, Length, Padding, Theme, alignment::Horizontal, border};
 
 use crate::theme::{
     self, AppLanguage, colors, fonts,
@@ -23,14 +23,17 @@ const SSH_INPUT_VERTICAL_PADDING: u16 = INPUT_VERTICAL_PADDING;
 const TITLE_SPACING: f32 = 8.0;
 const MANAGE_BUTTON_HEIGHT: f32 = 24.0;
 const MANAGE_BUTTON_WIDTH: f32 = 78.0;
-const MANAGE_BUTTON_TEXT_OFFSET: f32 = 28.0;
+const MANAGE_BUTTON_ICON_SLOT: f32 = 16.0;
+const MANAGE_BUTTON_ICON_SIZE: f32 = 14.0;
+const MANAGE_BUTTON_CONTENT_SPACING: f32 = 6.0;
+const MANAGE_BUTTON_RIGHT_INSET: f32 = 2.0;
 const SECTION_TITLE_HEIGHT: f32 = 24.0;
 const RUSTDESK_SECTION_SPACING: f32 = 9.0;
 const SECTION_DIVIDER_PADDING: u16 = 8;
 const INPUT_HEIGHT: f32 = crate::widgets::dropdown::TRIGGER_HEIGHT;
 const SSH_DROPDOWN_TRIGGER_WIDTH: f32 = 38.0;
 const SSH_DROPDOWN_VERTICAL_INSET: u16 = 1;
-const MANAGE_BUTTON_ICON_ASSET: &[u8] = br#"<svg xmlns="http://www.w3.org/2000/svg" width="78" height="24" viewBox="0 0 78 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(4.8 4.2) scale(0.61)"><path d="M10 5H3" /><path d="M12 19H3" /><path d="M14 3v4" /><path d="M16 17v4" /><path d="M21 12h-9" /><path d="M21 19h-5" /><path d="M21 5h-7" /><path d="M8 10v4" /><path d="M8 12H3" /></g></svg>"#;
+const MANAGE_BUTTON_ICON_ASSET: &[u8] = br#"<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5H3" /><path d="M12 19H3" /><path d="M14 3v4" /><path d="M16 17v4" /><path d="M21 12h-9" /><path d="M21 19h-5" /><path d="M21 5h-7" /><path d="M8 10v4" /><path d="M8 12H3" /></svg>"#;
 const LIGHT_INPUT_BACKGROUND: iced::Color = colors::rgb(0xF4, 0xF5, 0xF7);
 const LIGHT_INACTIVE_ICON: iced::Color = colors::rgb(0x4B, 0x55, 0x63);
 const LIGHT_TITLE_TEXT: iced::Color = colors::rgb(0x1F, 0x29, 0x37);
@@ -258,21 +261,26 @@ where
     Message: Clone + 'a,
 {
     button(
-        stack([
-            manage_button_icon_layer(),
+        container(
             row![
-                Space::new().width(Length::Fixed(MANAGE_BUTTON_TEXT_OFFSET)),
+                manage_button_icon(),
                 text(manage_button_label(app_language))
                     .font(fonts::semibold())
                     .size(11),
             ]
-            .width(Length::Fixed(MANAGE_BUTTON_WIDTH))
-            .height(Length::Fixed(MANAGE_BUTTON_HEIGHT))
-            .align_y(Alignment::Center)
-            .into(),
-        ])
-        .width(Length::Fixed(MANAGE_BUTTON_WIDTH))
-        .height(Length::Fixed(MANAGE_BUTTON_HEIGHT)),
+            .spacing(MANAGE_BUTTON_CONTENT_SPACING)
+            .align_y(Alignment::Center),
+        )
+        .width(Fill)
+        .height(Length::Fixed(MANAGE_BUTTON_HEIGHT))
+        .padding(Padding {
+            top: 0.0,
+            right: MANAGE_BUTTON_RIGHT_INSET,
+            bottom: 0.0,
+            left: 0.0,
+        })
+        .align_x(Horizontal::Right)
+        .center_y(Length::Fixed(MANAGE_BUTTON_HEIGHT)),
     )
     .width(Length::Fixed(MANAGE_BUTTON_WIDTH))
     .height(Length::Fixed(MANAGE_BUTTON_HEIGHT))
@@ -298,17 +306,23 @@ fn manage_button_active_tone(theme: &Theme) -> iced::Color {
     }
 }
 
-fn manage_button_icon_layer<'a, Message: 'a>() -> Element<'a, Message> {
-    svg(svg::Handle::from_memory(MANAGE_BUTTON_ICON_ASSET))
-        .width(Length::Fixed(MANAGE_BUTTON_WIDTH))
-        .height(Length::Fixed(MANAGE_BUTTON_HEIGHT))
-        .style(|theme: &Theme, status| svg::Style {
-            color: Some(match status {
-                svg::Status::Hovered => manage_button_active_tone(theme),
-                svg::Status::Idle => manage_button_idle_tone(theme),
+fn manage_button_icon<'a, Message: 'a>() -> Element<'a, Message> {
+    container(
+        svg(svg::Handle::from_memory(MANAGE_BUTTON_ICON_ASSET))
+            .width(Length::Fixed(MANAGE_BUTTON_ICON_SIZE))
+            .height(Length::Fixed(MANAGE_BUTTON_ICON_SIZE))
+            .style(|theme: &Theme, status| svg::Style {
+                color: Some(match status {
+                    svg::Status::Hovered => manage_button_active_tone(theme),
+                    svg::Status::Idle => manage_button_idle_tone(theme),
+                }),
             }),
-        })
-        .into()
+    )
+    .width(Length::Fixed(MANAGE_BUTTON_ICON_SLOT))
+    .height(Length::Fixed(MANAGE_BUTTON_ICON_SLOT))
+    .center_x(Length::Fixed(MANAGE_BUTTON_ICON_SLOT))
+    .center_y(Length::Fixed(MANAGE_BUTTON_ICON_SLOT))
+    .into()
 }
 
 fn manage_button_style(theme: &Theme, status: button::Status) -> button::Style {

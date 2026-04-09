@@ -1,83 +1,87 @@
-# LANScanner
+<p align="center">
+  <a href="./README_CN.md">中文</a> | <a href="./README.md">English</a>
+</p>
+<h1 align="center"><img src="./crates/app/assets/lanscanner.ico" alt="LANScanner logo" width="70" /> LANScanner</h1>
 
-**你的终极局域网探索与 SSH 管理利器。**
+**Your ultimate toolkit for LAN discovery and SSH management.**
 
-欢迎来到 LANScanner！这是一款功能强大、速度极快且设计优雅的网络实用工具。专为对性能和直观用户体验有极高要求的开发者、系统管理员以及 IT 爱好者打造。
+Welcome to LANScanner, a powerful, blazing-fast, and elegant network utility built for developers, system administrators, and IT enthusiasts who care deeply about performance and a clean user experience.
 
-你是否厌倦了在各种不同的命令行工具之间切换，仅仅为了查找 IP 地址、检查开放端口或是管理你的 SSH 连接？LANScanner 完美解决了这个问题，它提供了一个全能的图形化界面，让你的本地网络管理尽在掌控之中。
+If you are tired of jumping between different command-line tools just to find IP addresses, inspect open ports, or manage SSH access, LANScanner solves that problem with an all-in-one graphical interface that keeps your local network workflow under control.
 
-### 为什么选择 LANScanner？
+### Why LANScanner?
 
-- 🚀 **极速扫描：** 由 Rust 和异步网络库 (`tokio`) 强力驱动，LANScanner 能够在几秒钟内飞速扫描你的子网并发现活跃设备。
-- 🎨 **美观直观的 UI：** 基于 `Iced` 框架构建，提供现代、响应式且流畅的图形界面，让网络管理不再是繁杂的任务，而是一种享受。
-- 🔐 **无缝 SSH 与凭据管理：** 直接在应用内管理你的 SSH 凭据，并一键连接到你的服务器。再也不用到处翻找配置文件或忘记密码了。
-- 🐳 **Docker 与服务检测：** 智能识别 Docker 容器和正在运行的服务，让你深入了解网络中实际运行的内容。
-- 🛠 **开箱即用：** 零配置需求。只需启动应用，选择你的网络接口，点击扫描。就是这么简单！
-
----
-
-## 🏗 架构说明
-
-LANScanner 经过精心设计，采用模块化的 Workspace 架构，以确保代码的可维护性、清晰的关注点分离以及未来的可扩展性。项目主要分为以下几个专门的 crate：
-
-- **`crates/app`**: 应用程序的主要入口和协调者。它将业务逻辑与用户界面结合在一起，处理主要的应用状态、消息路由和 shell 集成。
-- **`crates/core`**: 应用程序的核心心脏。包含网络扫描、SSH 协议处理 (`russh`)、Docker 检测和凭据管理的所有繁重工作。这部分纯粹由逻辑驱动，与 UI 无关。
-- **`crates/platform`**: 处理特定操作系统的集成和系统级操作。包括查找网络接口、启动终端模拟器或外部应用，以及窗口和进程管理。
-- **`crates/ui`**: 视觉展示层。完全使用 `Iced` 构建，包含可重用的组件（widgets）、主题、设备列表、扫描卡片和模态对话框。
+- 🚀 **High-speed scanning:** Powered by Rust and the asynchronous networking stack `tokio`, LANScanner can scan your subnet and discover active devices in seconds.
+- 🎨 **Modern and intuitive UI:** Built with `Iced`, it provides a responsive and polished graphical interface that makes network management feel straightforward instead of tedious.
+- 🔐 **Seamless SSH credential management:** Manage SSH credentials directly inside the app and connect to your servers with a single click. No more digging through config files or forgetting passwords.
+- 🐳 **Docker and service detection:** Intelligently detects Docker containers and running services so you can better understand what is actually active on your network.
+- 🛠 **Ready out of the box:** No complex setup required. Launch the app, pick a network interface, and start scanning.
 
 ---
 
-## 此处下载
+## Downloads
 
-  - 下载总览：https://github.com/ChickmagnetL/LANScanner/releases/latest
-  - Windows 下载：https://github.com/ChickmagnetL/LANScanner/releases/latest/download/LANScanner-windows-x86_64.zip
-  - MacOS 下载：[后续更新...]
-  - Linux 下载：[后续更新...]
-
-------
-
-## 🚀 使用说明
-
-使用 LANScanner 非常简单直接：
-
-1. **启动应用。**
-
-2. **选择网络：** 在界面顶部的下拉菜单中，选择你想要扫描的网络接口。
-
-   ![image-20260408000910266](/picture/ChooseNetwork.png)
-
-3. **开始扫描：** 点击扫描按钮。见证设备、开放端口和服务在列表中实时弹出的过程。
-
-4. **管理设备：**
-
-   - 点击发现的设备以查看详细信息。
-   - 使用内置的凭据管理器保存 SSH 用户名和密码/密钥。
-   - 只需点击一下，即可立即打开到目标设备的 SSH 会话。
+- Release overview: https://github.com/ChickmagnetL/LANScanner/releases/latest
+- Windows download: https://github.com/ChickmagnetL/LANScanner/releases/latest/download/LANScanner-windows-x86_64.zip
+- macOS download: [Coming soon...]
+- Linux download: [Coming soon...]
 
 ---
 
-## 🛠 构建说明
+## 🚀 Usage
 
-为了极大地简化编译过程，LANScanner 摒弃了繁琐的手动命令，采用一键构建应用的脚本。
+1. **Launch the application.**
 
-1. **克隆仓库并进入目录：**
+2. **Choose a network:** In the "Scan Networks" tab on the left side of the application interface, click the drop-down box and select the network interface you want to scan.
+
+   ![](./picture/ChooseNetwork_EN.jpg)
+
+3. **Start scanning:** Click the scan button and watch devices, open ports, and detected services appear in real time.
+
+   ![Scanning](./picture/Scanning_EN.jpg)
+
+4. **Connect to a device:**
+
+   - Enter the username and password in the SSH credential panel on the left, or save SSH usernames and passwords/keys with the built-in credential manager. Then click the SSH credential verification button below.
+   - Click a verified device to view the available quick-launch connection applications.
+   - Click an icon in the right-side panel to open the corresponding application and connect to that device IP immediately.
+
+![connect](./picture/connect_EN.jpg)
+
+---
+
+## 🏗 Architecture
+
+LANScanner is organized as a modular Cargo workspace so the codebase stays maintainable, responsibilities stay clearly separated, and future expansion remains straightforward. The project is mainly split into the following crates:
+
+- **`crates/app`**: The main application entry point and coordinator. It combines business logic with the user interface and handles top-level app state, message routing, and shell integration.
+- **`crates/core`**: The core engine of the application. It contains the heavy lifting for network scanning, SSH protocol handling with `russh`, Docker detection, and credential management. This layer is logic-focused and independent from the UI.
+- **`crates/platform`**: Handles OS-specific integrations and system-level operations, including network interface discovery, launching terminal emulators or external applications, and window/process management.
+- **`crates/ui`**: The presentation layer. It is built entirely with `Iced` and contains reusable widgets, themes, device lists, scan cards, and modal dialogs.
+
+---
+
+## 🛠 Build
+
+To simplify the build process, LANScanner uses one-click build scripts instead of a long series of manual commands.
+
+1. **Clone the repository and enter the project directory:**
 
    ```bash
    git clone https://github.com/ChickmagnetL/LANScanner.git
    cd LANScanner
    ```
 
-2. **使用构建脚本：**
-   所有的自动化构建脚本都统一存放在 `tools/build/` 目录下。你只需执行对应操作系统的脚本即可自动完成编译与打包（目前已提供 Windows 环境下的构建脚本，只需运行 `windows.ps1` 即可）。
+2. **Run the build script:**
+   All automated build scripts are grouped under `tools/build/`. Run the script for your operating system to build and package the application automatically. At the moment, the Windows build script is available, so you can start with `windows.ps1`.
 
-*注：后续会陆续补充 macOS 和 Linux 平台的一键构建脚本，持续优化三端的自动化构建体验。*
+*Note: one-click build scripts for macOS and Linux will be added later to improve the cross-platform build workflow.*
 
 ---
 
-## 🗺 未来计划
+## 🗺 Roadmap
 
-近期的项目路线图主要包括：
+The near-term roadmap currently includes:
 
-- [ ] 🍎 **适配 macOS 平台**
-
-- [ ] 🐧 **适配 Linux 平台**
+- [ ] 🍎 **macOS support**
+- [ ] 🐧 **Linux support**
