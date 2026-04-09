@@ -2495,6 +2495,7 @@ version = "0.1.0"
 dependencies = [
  "iced",
  "lanscanner-core",
+ "sys-locale",
  "tokio",
  "winreg",
 ]

@@ -54,6 +54,11 @@ impl ShellApp {
         selected_username: Option<String>,
         password: String,
     ) -> Self {
+        let app_language = match platform::locale::detect_system_language() {
+            platform::locale::SystemLanguage::Chinese => AppLanguage::Chinese,
+            platform::locale::SystemLanguage::Other => AppLanguage::English,
+        };
+
         Self {
             network_dropdown_open: false,
             user_dropdown_open: false,
@@ -80,7 +85,7 @@ impl ShellApp {
             verify_completed_count: 0,
             networks_signature: 0,
             spinner_phase: 0,
-            app_language: AppLanguage::Chinese,
+            app_language,
             theme_mode: ThemeMode::Light,
             window_id: None,
             is_window_maximized: false,

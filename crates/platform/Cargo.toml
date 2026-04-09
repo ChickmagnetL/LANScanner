@@ -7,6 +7,7 @@ license.workspace = true
 [dependencies]
 iced.workspace = true
 ssh_core = { path = "../core", package = "lanscanner-core" }
+sys-locale = "0.3"
 tokio.workspace = true
 
 [target.'cfg(windows)'.dependencies]
