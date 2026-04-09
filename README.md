@@ -73,9 +73,9 @@ To simplify the build process, LANScanner uses one-click build scripts instead o
    ```
 
 2. **Run the build script:**
-   All automated build scripts are grouped under `tools/build/`. Run the script for your operating system to build and package the application automatically. At the moment, the Windows build script is available, so you can start with `windows.ps1`.
+   All automated build scripts are grouped under `tools/build/`. Use `windows.ps1` on Windows and `linux.sh` in a Linux environment such as native Linux.
 
-*Note: one-click build scripts for macOS and Linux will be added later to improve the cross-platform build workflow.*
+*Note: `tools/build/linux.sh` produces `release/linux/LANScanner`, which is a Linux executable. Run it inside Linux, not as a native Windows `.exe`. A macOS one-click build script is still planned.*
 
 ---
 
