@@ -1,6 +1,6 @@
 use iced::overlay::menu;
 use iced::widget::{button, container, text_input};
-use iced::{Background, Border, Shadow, Theme, Vector, border};
+use iced::{Background, Border, Shadow, Theme, border};
 
 use super::colors::{self, rgba};
 
@@ -87,11 +87,7 @@ pub fn card(theme: &Theme) -> container::Style {
             width: 1.0,
             radius: border::radius(16),
         })
-        .shadow(Shadow {
-            color: rgba(0, 0, 0, if is_dark { 0.08 } else { 0.02 }),
-            offset: Vector::new(0.0, 2.0),
-            blur_radius: 10.0,
-        })
+        .shadow(Shadow::default())
 }
 
 pub fn card_panel(theme: &Theme) -> container::Style {
@@ -308,11 +304,7 @@ pub fn dropdown_menu(theme: &Theme) -> menu::Style {
             width: 1.0,
             radius: border::radius(12),
         },
-        shadow: Shadow {
-            color: rgba(0, 0, 0, if is_dark { 0.22 } else { 0.12 }),
-            offset: Vector::new(0.0, 10.0),
-            blur_radius: 25.0,
-        },
+        shadow: Shadow::default(),
         text_color: if is_dark {
             palette.text
         } else {
@@ -371,15 +363,7 @@ pub fn dropdown_trigger(theme: &Theme, status: button::Status, is_open: bool) ->
             width: 0.0,
             radius: border::radius(12),
         },
-        shadow: if is_open {
-            Shadow {
-                color: rgba(0, 0, 0, if is_dark { 0.12 } else { 0.04 }),
-                offset: Vector::new(0.0, 1.0),
-                blur_radius: 3.0,
-            }
-        } else {
-            Shadow::default()
-        },
+        shadow: Shadow::default(),
     }
 }
 
@@ -443,11 +427,7 @@ pub fn dropdown_menu_surface(theme: &Theme) -> container::Style {
             width: 1.0,
             radius: border::radius(12),
         })
-        .shadow(Shadow {
-            color: rgba(0, 0, 0, if is_dark { 0.22 } else { 0.12 }),
-            offset: Vector::new(0.0, 10.0),
-            blur_radius: 25.0,
-        })
+        .shadow(Shadow::default())
 }
 
 pub fn dropdown_divider(theme: &Theme) -> container::Style {
@@ -664,9 +644,5 @@ pub fn modal_panel(theme: &Theme) -> container::Style {
             width: 1.0,
             radius: border::radius(16),
         })
-        .shadow(Shadow {
-            color: rgba(0, 0, 0, if is_dark { 0.38 } else { 0.12 }),
-            offset: Vector::new(0.0, if is_dark { 18.0 } else { 14.0 }),
-            blur_radius: if is_dark { 46.0 } else { 32.0 },
-        })
+        .shadow(Shadow::default())
 }

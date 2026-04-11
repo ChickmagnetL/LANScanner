@@ -27,47 +27,27 @@ pub fn settings() -> window::Settings {
     }
 }
 
-#[cfg(target_os = "windows")]
 fn use_native_decorations() -> bool {
     false
 }
 
-#[cfg(not(target_os = "windows"))]
-fn use_native_decorations() -> bool {
-    true
-}
-
-#[cfg(target_os = "windows")]
 fn platform_specific_settings() -> window::settings::PlatformSpecific {
+    #[allow(unused_mut)]
     let mut settings = window::settings::PlatformSpecific::default();
-    settings.undecorated_shadow = false;
-    settings.corner_preference = window::settings::platform::CornerPreference::DoNotRound;
+    #[cfg(target_os = "windows")]
+    {
+        settings.undecorated_shadow = false;
+        settings.corner_preference = window::settings::platform::CornerPreference::DoNotRound;
+    }
     settings
 }
 
-#[cfg(not(target_os = "windows"))]
-fn platform_specific_settings() -> window::settings::PlatformSpecific {
-    window::settings::PlatformSpecific::default()
-}
-
-#[cfg(target_os = "windows")]
 pub fn uses_transparent_surface() -> bool {
     true
 }
 
-#[cfg(not(target_os = "windows"))]
-pub fn uses_transparent_surface() -> bool {
-    false
-}
-
-#[cfg(target_os = "windows")]
 pub fn uses_custom_resize_overlay() -> bool {
     true
-}
-
-#[cfg(not(target_os = "windows"))]
-pub fn uses_custom_resize_overlay() -> bool {
-    false
 }
 
 fn load_window_icon() -> Option<window::Icon> {
@@ -84,28 +64,13 @@ pub fn perform<Message>(window_id: window::Id, action: WindowAction) -> Task<Mes
     }
 }
 
-#[cfg(target_os = "windows")]
 fn drag_window<Message>(window_id: window::Id) -> Task<Message> {
     window::drag(window_id)
 }
 
-#[cfg(not(target_os = "windows"))]
-fn drag_window<Message>(_window_id: window::Id) -> Task<Message> {
-    Task::none()
-}
-
-#[cfg(target_os = "windows")]
 fn drag_resize_window<Message>(
     window_id: window::Id,
     direction: window::Direction,
 ) -> Task<Message> {
     window::drag_resize(window_id, direction)
-}
-
-#[cfg(not(target_os = "windows"))]
-fn drag_resize_window<Message>(
-    _window_id: window::Id,
-    _direction: window::Direction,
-) -> Task<Message> {
-    Task::none()
 }

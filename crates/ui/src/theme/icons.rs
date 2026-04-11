@@ -136,7 +136,7 @@ where
     Message: 'a,
 {
     container(
-        svg(svg::Handle::from_memory(glyph_bytes(kind)))
+        svg(cached_glyph_handle(kind))
             .width(Length::Fixed(size))
             .height(Length::Fixed(size))
             .style(move |_theme, _status| svg::Style { color: Some(tone) }),
@@ -222,7 +222,7 @@ where
 {
     container(
         container(
-            svg(svg::Handle::from_memory(glyph_bytes(kind)))
+            svg(cached_glyph_handle(kind))
                 .width(Length::Fixed(size))
                 .height(Length::Fixed(size))
                 .style(move |_theme, _status| svg::Style { color: Some(tone) }),
@@ -398,7 +398,7 @@ where
     Message: 'a,
 {
     container(
-        svg(svg::Handle::from_memory(asset_bytes(kind)))
+        svg(cached_asset_handle(kind))
             .width(Length::Fixed(size))
             .height(Length::Fixed(size))
             .style(move |theme: &Theme, _status| svg::Style {
@@ -439,7 +439,7 @@ where
     Message: 'a,
 {
     container(
-        svg(svg::Handle::from_memory(glyph_bytes(kind)))
+        svg(cached_glyph_handle(kind))
             .width(Length::Fixed(size))
             .height(Length::Fixed(size))
             .style(move |theme: &Theme, _status| svg::Style {
@@ -546,4 +546,23 @@ fn glyph_bytes(kind: Glyph) -> &'static [u8] {
         Glyph::Spinner4 => CIRCLE_DASHED_ASSET,
         Glyph::GitHub => GITHUB_ASSET,
     }
+}
+
+
+fn cached_glyph_handle(kind: Glyph) -> svg::Handle {
+    const INIT: std::sync::OnceLock<svg::Handle> = std::sync::OnceLock::new();
+    static HANDLES: [std::sync::OnceLock<svg::Handle>; 38] = [INIT; 38];
+    
+    HANDLES[kind as usize]
+        .get_or_init(|| svg::Handle::from_memory(glyph_bytes(kind)))
+        .clone()
+}
+
+fn cached_asset_handle(kind: AssetGlyph) -> svg::Handle {
+    const INIT: std::sync::OnceLock<svg::Handle> = std::sync::OnceLock::new();
+    static HANDLES: [std::sync::OnceLock<svg::Handle>; 2] = [INIT; 2];
+    
+    HANDLES[kind as usize]
+        .get_or_init(|| svg::Handle::from_memory(asset_bytes(kind)))
+        .clone()
 }
