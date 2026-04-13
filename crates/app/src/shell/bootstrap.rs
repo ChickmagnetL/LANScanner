@@ -88,6 +88,7 @@ impl ShellApp {
             app_language,
             theme_mode: ThemeMode::Light,
             window_id: None,
+            linux_window_backend: None,
             is_window_maximized: false,
             credentials,
             app_paths: config.app_paths.clone(),

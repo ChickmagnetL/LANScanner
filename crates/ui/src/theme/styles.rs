@@ -26,7 +26,7 @@ pub fn window_backdrop(_theme: &Theme) -> container::Style {
         })
 }
 
-fn window_shell_radius(theme: &Theme) -> f32 {
+pub fn window_shell_radius(theme: &Theme) -> f32 {
     let palette = colors::palette(theme);
     if palette.card == colors::DARK.card {
         WINDOW_SHELL_RADIUS_DARK
@@ -36,28 +36,34 @@ fn window_shell_radius(theme: &Theme) -> f32 {
 }
 
 pub fn window_shell(theme: &Theme) -> container::Style {
+    window_shell_with_radius(theme, window_shell_radius(theme))
+}
+
+pub fn window_shell_with_radius(theme: &Theme, radius: f32) -> container::Style {
     let palette = colors::palette(theme);
-    let shell_radius = window_shell_radius(theme);
 
     container::Style::default()
         .background(palette.canvas)
         .border(Border {
             color: iced::Color::TRANSPARENT,
             width: 0.0,
-            radius: border::radius(shell_radius),
+            radius: border::radius(radius),
         })
 }
 
 pub fn titlebar(theme: &Theme) -> container::Style {
+    titlebar_with_radius(theme, window_shell_radius(theme))
+}
+
+pub fn titlebar_with_radius(theme: &Theme, radius: f32) -> container::Style {
     let palette = colors::palette(theme);
-    let shell_radius = window_shell_radius(theme);
 
     container::Style::default()
         .background(palette.titlebar)
         .border(Border {
             color: iced::Color::TRANSPARENT,
             width: 0.0,
-            radius: border::radius(shell_radius),
+            radius: border::radius(radius),
         })
 }
 

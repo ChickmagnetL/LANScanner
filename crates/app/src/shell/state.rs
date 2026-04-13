@@ -239,6 +239,7 @@ pub struct ShellApp {
     pub(super) app_language: AppLanguage,
     pub(super) theme_mode: ThemeMode,
     pub(super) window_id: Option<iced::window::Id>,
+    pub(super) linux_window_backend: Option<platform::window::LinuxWindowRuntime>,
     pub(super) is_window_maximized: bool,
     pub(super) credentials: Vec<Credential>,
     pub(super) app_paths: AppPaths,
@@ -262,4 +263,21 @@ pub struct ShellApp {
     pub(super) notice: Option<Notice>,
     pub(super) notice_version: u64,
     pub(super) visual_check: Option<VisualCheckRuntime>,
+}
+
+impl ShellApp {
+    pub fn linux_custom_chrome(&self) -> platform::window::LinuxCustomChrome {
+        #[cfg(target_os = "linux")]
+        {
+            self.linux_window_backend
+                .as_ref()
+                .map(platform::window::LinuxWindowRuntime::custom_chrome)
+                .unwrap_or_else(platform::window::linux_startup_custom_chrome)
+        }
+
+        #[cfg(not(target_os = "linux"))]
+        {
+            platform::window::LinuxCustomChrome::Fallback
+        }
+    }
 }

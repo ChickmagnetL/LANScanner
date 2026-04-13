@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use platform::window::WindowAction;
+use platform::window::{LinuxWindowRuntime, WindowAction};
 use ssh_core::credential::store::ToolKind;
 use ssh_core::docker::Container;
 use ssh_core::network::NetworkInterface;
@@ -28,6 +28,8 @@ pub enum Message {
     ShowHelpGuideBasic,
     ShowHelpGuideRustDesk,
     WindowReady(iced::window::Id),
+    LinuxWindowRuntimeResolved(LinuxWindowRuntime),
+    LinuxWindowSyncRetry(u8),
     WindowResized(iced::window::Id),
     WindowMaximizedChanged(bool),
     WindowAction(WindowAction),

@@ -13,7 +13,7 @@ use crate::message::Message;
 use super::super::{ActiveModal, PendingToolAction, ShellApp};
 use super::dropdown_metrics::{
     CONTENT_PADDING, CONTENT_SPACING, LEFT_COLUMN_SPACING, LEFT_COLUMN_WIDTH, RIGHT_PANEL_PADDING,
-    WINDOW_PADDING, credential_dropdown_left, credential_dropdown_top, credential_dropdown_width,
+    credential_dropdown_left, credential_dropdown_top, credential_dropdown_width,
     scan_dropdown_left, scan_dropdown_top, scan_dropdown_width,
 };
 use super::filters::scan_result_filter_controls;
@@ -23,6 +23,13 @@ use super::header_status::{
 use super::resize_overlay::window_resize_overlay;
 
 pub(super) fn view(app: &ShellApp) -> Element<'_, Message> {
+    let is_rounded = platform::window::uses_transparent_surface() && !app.is_window_maximized;
+    let radius = if is_rounded {
+        ui::theme::styles::window_shell_radius(&app.theme())
+    } else {
+        0.0
+    };
+
     let header = ui::titlebar::view(
         app.theme_mode,
         app.app_language,
@@ -31,6 +38,7 @@ pub(super) fn view(app: &ShellApp) -> Element<'_, Message> {
         Message::OpenHelpModal,
         Message::ToggleLanguage,
         Message::WindowAction,
+        radius,
     );
 
     dropdown::render(
@@ -285,22 +293,16 @@ pub(super) fn view(app: &ShellApp) -> Element<'_, Message> {
                         .height(Fill)
                         .padding(CONTENT_PADDING);
 
-                    let shell = container(column![header, content].height(Fill).spacing(0))
+                    let shell: Element<'_, Message> =
+                        container(column![header, content].height(Fill).spacing(0))
                         .width(Fill)
                         .height(Fill)
                         .clip(true)
-                        .style(ui::theme::styles::window_shell);
-                    let shell: Element<'_, Message> = if WINDOW_PADDING > 0.0 {
-                        container(shell)
-                            .width(Fill)
-                            .height(Fill)
-                            .padding(WINDOW_PADDING)
-                            .clip(true)
-                            .style(ui::theme::styles::window_backdrop)
-                            .into()
-                    } else {
-                        shell.into()
-                    };
+                        .style(move |theme| {
+                            ui::theme::styles::window_shell_with_radius(theme, radius)
+                        })
+                        .into();
+
                     let shell: Element<'_, Message> = if app.is_window_maximized
                         || !platform::window::uses_custom_resize_overlay()
                     {

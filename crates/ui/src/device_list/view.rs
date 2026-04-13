@@ -1,4 +1,4 @@
-use iced::widget::{Space, button, column, container, row, scrollable, text};
+use iced::widget::{button, column, container, row, scrollable, text};
 use iced::{Alignment, Element, Fill, Length, Theme, border};
 use ssh_core::scanner::{Device, DeviceStatus, DeviceType};
 
@@ -43,82 +43,11 @@ where
         |column, device| {
             let is_selected = selected_device_id == Some(device.id.as_str());
             let select_message = on_select(device.id.clone());
-            let item = button(
-                row![
-                    row![
-                        device_icon(device.device_type, is_selected),
-                        column![
-                            text(&device.name).font(fonts::semibold()).size(14).style(
-                                move |theme: &Theme| {
-                                    let palette = colors::palette(theme);
-
-                                    if is_selected {
-                                        theme::solid_text(palette.primary)
-                                    } else {
-                                        theme::text_primary(theme)
-                                    }
-                                }
-                            ),
-                            ip_selection_affordance(&device.ip, is_selected),
-                        ]
-                        .spacing(5)
-                        .width(Fill),
-                    ]
-                    .spacing(12)
-                    .width(Fill)
-                    .align_y(Alignment::Center),
-                    Space::new().width(Length::Shrink),
-                    status_badge(device.status, app_language),
-                ]
-                .height(64.0)
-                .align_y(Alignment::Center),
-            )
-            .width(Fill)
-            .padding([0.0, 12.0])
-            .style(move |theme: &Theme, status| {
-                let palette = colors::palette(theme);
-                let is_dark = palette.card == colors::DARK.card;
-
-                let background = if is_selected {
-                    if is_dark {
-                        colors::DARK_SELECTION
-                    } else {
-                        colors::LIGHT_SELECTION
-                    }
-                } else {
-                    match status {
-                        button::Status::Hovered | button::Status::Pressed => {
-                            if is_dark {
-                                colors::DARK_ROW_HOVER
-                            } else {
-                                colors::LIGHT_ROW_HOVER
-                            }
-                        }
-                        _ => iced::Color::TRANSPARENT,
-                    }
-                };
-
-                button::Style {
-                    snap: false,
-                    background: Some(iced::Background::Color(background)),
-                    text_color: palette.text,
-                    border: iced::Border {
-                        color: if is_selected {
-                            if is_dark {
-                                colors::rgba(0x3B, 0x82, 0xF6, 0.4)
-                            } else {
-                                colors::rgba(0x3B, 0x82, 0xF6, 0.2)
-                            }
-                        } else {
-                            iced::Color::TRANSPARENT
-                        },
-                        width: if is_selected { 1.0 } else { 0.0 },
-                        radius: border::radius(12),
-                    },
-                    shadow: iced::Shadow::default(),
-                }
-            })
-            .on_press(select_message);
+            let item = button(device_row(device, is_selected, app_language))
+                .width(Fill)
+                .padding([0.0, 12.0])
+                .style(move |theme: &Theme, status| device_row_style(theme, status, is_selected))
+                .on_press(select_message);
 
             column.push(item)
         },
@@ -129,6 +58,94 @@ where
         .height(Fill)
         .style(theme::styles::custom_scrollbar)
         .into()
+}
+
+fn device_row<'a, Message: 'a>(
+    device: &'a Device,
+    is_selected: bool,
+    app_language: AppLanguage,
+) -> Element<'a, Message> {
+    row![
+        device_icon(device.device_type, is_selected),
+        device_row_details(&device.name, &device.ip, is_selected),
+        status_badge(device.status, app_language),
+    ]
+    .spacing(12)
+    .height(64.0)
+    .align_y(Alignment::Center)
+    .into()
+}
+
+fn device_row_details<'a, Message>(
+    name: &'a str,
+    ip: &'a str,
+    selected: bool,
+) -> Element<'a, Message>
+where
+    Message: 'a,
+{
+    column![
+        text(name)
+            .font(fonts::semibold())
+            .size(14)
+            .style(move |theme: &Theme| {
+                let palette = colors::palette(theme);
+
+                if selected {
+                    theme::solid_text(palette.primary)
+                } else {
+                    theme::text_primary(theme)
+                }
+            }),
+        ip_selection_affordance(ip, selected),
+    ]
+    .spacing(5)
+    .width(Fill)
+    .into()
+}
+
+fn device_row_style(theme: &Theme, status: button::Status, is_selected: bool) -> button::Style {
+    let palette = colors::palette(theme);
+    let is_dark = palette.card == colors::DARK.card;
+
+    let background = if is_selected {
+        if is_dark {
+            colors::DARK_SELECTION
+        } else {
+            colors::LIGHT_SELECTION
+        }
+    } else {
+        match status {
+            button::Status::Hovered | button::Status::Pressed => {
+                if is_dark {
+                    colors::DARK_ROW_HOVER
+                } else {
+                    colors::LIGHT_ROW_HOVER
+                }
+            }
+            _ => iced::Color::TRANSPARENT,
+        }
+    };
+
+    button::Style {
+        snap: false,
+        background: Some(iced::Background::Color(background)),
+        text_color: palette.text,
+        border: iced::Border {
+            color: if is_selected {
+                if is_dark {
+                    colors::rgba(0x3B, 0x82, 0xF6, 0.4)
+                } else {
+                    colors::rgba(0x3B, 0x82, 0xF6, 0.2)
+                }
+            } else {
+                iced::Color::TRANSPARENT
+            },
+            width: if is_selected { 1.0 } else { 0.0 },
+            radius: border::radius(12),
+        },
+        shadow: iced::Shadow::default(),
+    }
 }
 
 fn ip_selection_affordance<'a, Message>(ip: &'a str, selected: bool) -> Element<'a, Message>

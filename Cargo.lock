@@ -2498,6 +2498,7 @@ dependencies = [
  "sys-locale",
  "tokio",
  "winreg",
+ "x11rb",
 ]
 
 [[package]]

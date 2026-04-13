@@ -548,11 +548,10 @@ fn glyph_bytes(kind: Glyph) -> &'static [u8] {
     }
 }
 
-
 fn cached_glyph_handle(kind: Glyph) -> svg::Handle {
     const INIT: std::sync::OnceLock<svg::Handle> = std::sync::OnceLock::new();
     static HANDLES: [std::sync::OnceLock<svg::Handle>; 38] = [INIT; 38];
-    
+
     HANDLES[kind as usize]
         .get_or_init(|| svg::Handle::from_memory(glyph_bytes(kind)))
         .clone()
@@ -561,7 +560,7 @@ fn cached_glyph_handle(kind: Glyph) -> svg::Handle {
 fn cached_asset_handle(kind: AssetGlyph) -> svg::Handle {
     const INIT: std::sync::OnceLock<svg::Handle> = std::sync::OnceLock::new();
     static HANDLES: [std::sync::OnceLock<svg::Handle>; 2] = [INIT; 2];
-    
+
     HANDLES[kind as usize]
         .get_or_init(|| svg::Handle::from_memory(asset_bytes(kind)))
         .clone()

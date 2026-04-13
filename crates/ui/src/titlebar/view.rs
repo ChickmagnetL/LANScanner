@@ -40,6 +40,7 @@ pub fn view<'a, Message>(
     on_help: Message,
     on_toggle_language: Message,
     on_window_action: impl Fn(WindowAction) -> Message + Copy + 'a,
+    radius: f32,
 ) -> Element<'a, Message>
 where
     Message: Clone + 'a,
@@ -141,7 +142,7 @@ where
         ]
         .height(TITLEBAR_HEIGHT),
     )
-    .style(crate::theme::styles::titlebar)
+    .style(move |theme| crate::theme::styles::titlebar_with_radius(theme, radius))
     .into()
 }
 

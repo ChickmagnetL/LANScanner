@@ -556,6 +556,20 @@ pub(crate) mod update {
             super::window_impl::handle_window_ready(app, window_id)
         }
 
+        pub(in super::super) fn handle_linux_window_runtime_resolved(
+            app: &mut super::super::ShellApp,
+            runtime: platform::window::LinuxWindowRuntime,
+        ) -> iced::Task<crate::message::Message> {
+            super::window_impl::handle_linux_window_runtime_resolved(app, runtime)
+        }
+
+        pub(in super::super) fn handle_linux_window_sync_retry(
+            app: &super::super::ShellApp,
+            attempt: u8,
+        ) -> iced::Task<crate::message::Message> {
+            super::window_impl::handle_linux_window_sync_retry(app, attempt)
+        }
+
         pub(in super::super) fn handle_window_resized(
             app: &mut super::super::ShellApp,
             window_id: iced::window::Id,
@@ -637,6 +651,12 @@ impl ShellApp {
             }
             Message::OpenCredModal => update::modal::handle_open_cred_modal(self),
             Message::WindowReady(window_id) => update::window::handle_window_ready(self, window_id),
+            Message::LinuxWindowRuntimeResolved(runtime) => {
+                update::window::handle_linux_window_runtime_resolved(self, runtime)
+            }
+            Message::LinuxWindowSyncRetry(attempt) => {
+                update::window::handle_linux_window_sync_retry(self, attempt)
+            }
             Message::WindowResized(window_id) => {
                 update::window::handle_window_resized(self, window_id)
             }
