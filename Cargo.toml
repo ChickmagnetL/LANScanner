@@ -21,7 +21,8 @@ tokio-util = { version = "0.7", features = ["rt"] }
 winreg = "0.10"
 
 [profile.release]
-opt-level = "z"
+# Favor runtime performance for desktop UI responsiveness.
+opt-level = 3
 lto = true
 codegen-units = 1
 panic = "abort"
