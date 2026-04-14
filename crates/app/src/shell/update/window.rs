@@ -179,6 +179,14 @@ fn sync_linux_window_runtime_if_needed(
     }
 }
 
+#[cfg(not(target_os = "linux"))]
+fn sync_linux_window_runtime_if_needed(
+    _app: &ShellApp,
+    _window_id: iced::window::Id,
+) -> Task<Message> {
+    Task::none()
+}
+
 #[cfg(target_os = "linux")]
 fn schedule_linux_window_sync_retry(attempt: u8) -> Task<Message> {
     Task::perform(
