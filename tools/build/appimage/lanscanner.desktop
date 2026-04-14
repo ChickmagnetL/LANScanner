@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=LANScanner
+Comment=LAN discovery and SSH desktop utility
+Exec=LANScanner
+Icon=lanscanner
+Terminal=false
+Categories=Network;Utility;
+Keywords=LAN;network;scanner;SSH;
+StartupNotify=true

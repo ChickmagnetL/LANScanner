@@ -75,7 +75,9 @@ To simplify the build process, LANScanner uses one-click build scripts instead o
 2. **Run the build script:**
    All automated build scripts are grouped under `tools/build/`. Use `windows.ps1` on Windows and `linux.sh` in a Linux environment such as native Linux.
 
-*Note: `tools/build/linux.sh` produces `release/linux/LANScanner`, which is a Linux executable. Run it inside Linux, not as a native Windows `.exe`. A macOS one-click build script is still planned.*
+*Note: `tools/build/linux.sh` now produces `release/linux/LANScanner-x86_64.AppImage` as the Linux release artifact. Run it inside Linux, not as a native Windows `.exe` file. A macOS one-click build script is still planned.*
+
+On the first Linux build, keep `python3` plus `curl` or `wget` available so the script can extract the bundled app icon and bootstrap local packaging tooling when needed.
 
 ---
 
