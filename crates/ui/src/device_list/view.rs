@@ -7,6 +7,9 @@ use crate::theme::{
     icons::{self, FrameSpec, Glyph},
 };
 
+const DEVICE_ROW_HORIZONTAL_PADDING: f32 = 12.0;
+const DEVICE_ROW_VERTICAL_PADDING: f32 = 10.0;
+
 pub enum PlaceholderState {
     Idle,
     RefreshingNetworks {
@@ -45,7 +48,7 @@ where
             let select_message = on_select(device.id.clone());
             let item = button(device_row(device, is_selected, app_language))
                 .width(Fill)
-                .padding([0.0, 12.0])
+                .padding([DEVICE_ROW_VERTICAL_PADDING, DEVICE_ROW_HORIZONTAL_PADDING])
                 .style(move |theme: &Theme, status| device_row_style(theme, status, is_selected))
                 .on_press(select_message);
 
@@ -71,7 +74,6 @@ fn device_row<'a, Message: 'a>(
         status_badge(device.status, app_language),
     ]
     .spacing(12)
-    .height(64.0)
     .align_y(Alignment::Center)
     .into()
 }
@@ -88,6 +90,9 @@ where
         text(name)
             .font(fonts::semibold())
             .size(14)
+            .width(Fill)
+            .line_height(1.2)
+            .wrapping(iced::widget::text::Wrapping::WordOrGlyph)
             .style(move |theme: &Theme| {
                 let palette = colors::palette(theme);
 

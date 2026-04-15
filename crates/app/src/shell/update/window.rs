@@ -1,4 +1,4 @@
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 use std::time::Duration;
 
 use iced::{Task, window};
@@ -24,6 +24,8 @@ pub(super) fn handle_window_ready(
     Task::batch([
         window::is_maximized(window_id).map(Message::WindowMaximizedChanged),
         apply_dwm_border_none(window_id),
+        sync_macos_traffic_lights(window_id),
+        schedule_macos_traffic_lights_sync_retry(0),
         sync_linux_window_runtime(window_id),
         schedule_linux_window_sync_retry(0),
         visual_check_task,
@@ -77,6 +79,28 @@ pub(super) fn handle_linux_window_sync_retry(app: &ShellApp, attempt: u8) -> Tas
     }
 }
 
+pub(super) fn handle_macos_traffic_lights_sync_retry(app: &ShellApp, attempt: u8) -> Task<Message> {
+    #[cfg(target_os = "macos")]
+    {
+        let Some(window_id) = app.window_id else {
+            return Task::none();
+        };
+
+        let mut tasks = vec![sync_macos_traffic_lights(window_id)];
+        if attempt < MACOS_TRAFFIC_LIGHT_SYNC_MAX_ATTEMPTS {
+            tasks.push(schedule_macos_traffic_lights_sync_retry(attempt + 1));
+        }
+
+        Task::batch(tasks)
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = (app, attempt);
+        Task::none()
+    }
+}
+
 pub(super) fn handle_window_resized(
     app: &mut ShellApp,
     window_id: iced::window::Id,
@@ -92,6 +116,7 @@ pub(super) fn handle_window_resized(
 
         Task::batch([
             window::is_maximized(window_id).map(Message::WindowMaximizedChanged),
+            sync_macos_traffic_lights(window_id),
             sync_linux_window_runtime_if_needed(app, window_id),
         ])
     } else {
@@ -153,6 +178,116 @@ fn apply_dwm_border_none(window_id: iced::window::Id) -> Task<Message> {
 
 #[cfg(not(target_os = "windows"))]
 fn apply_dwm_border_none(_window_id: iced::window::Id) -> Task<Message> {
+    Task::none()
+}
+
+#[cfg(target_os = "macos")]
+const MACOS_TRAFFIC_LIGHT_TOP_INSET: f64 = 18.0;
+#[cfg(target_os = "macos")]
+const MACOS_TRAFFIC_LIGHT_LEADING_INSET: f64 = 14.0;
+#[cfg(target_os = "macos")]
+const MACOS_TRAFFIC_LIGHT_SYNC_RETRY_DELAY: Duration = Duration::from_millis(32);
+#[cfg(target_os = "macos")]
+const MACOS_TRAFFIC_LIGHT_SYNC_MAX_ATTEMPTS: u8 = 3;
+
+#[cfg(target_os = "macos")]
+fn schedule_macos_traffic_lights_sync_retry(attempt: u8) -> Task<Message> {
+    Task::perform(
+        async move {
+            tokio::time::sleep(MACOS_TRAFFIC_LIGHT_SYNC_RETRY_DELAY).await;
+            attempt
+        },
+        Message::MacosTrafficLightsSyncRetry,
+    )
+}
+
+#[cfg(not(target_os = "macos"))]
+fn schedule_macos_traffic_lights_sync_retry(_attempt: u8) -> Task<Message> {
+    Task::none()
+}
+
+#[cfg(target_os = "macos")]
+fn sync_macos_traffic_lights(window_id: iced::window::Id) -> Task<Message> {
+    use iced::window::raw_window_handle::RawWindowHandle;
+    use objc2::rc::Retained;
+    use objc2_app_kit::{NSView, NSWindowButton};
+    use objc2_foundation::NSPoint;
+
+    window::run(window_id, |window| {
+        let Ok(handle) = window.window_handle() else {
+            return;
+        };
+        let RawWindowHandle::AppKit(handle) = handle.as_raw() else {
+            return;
+        };
+
+        // SAFETY: `window::run` executes against the live platform window, and the
+        // raw AppKit handle guarantees a valid `NSView*` on macOS main-thread code.
+        let Some(ns_view) = (unsafe { Retained::retain(handle.ns_view.as_ptr().cast()) }) else {
+            return;
+        };
+        let ns_view: Retained<NSView> = ns_view;
+        let Some(ns_window) = ns_view.window() else {
+            return;
+        };
+
+        let Some(close_button) =
+            ns_window.standardWindowButton(NSWindowButton::NSWindowCloseButton)
+        else {
+            return;
+        };
+        let Some(button_host_view) = (unsafe { close_button.superview() }) else {
+            return;
+        };
+        let Some(titlebar_container_view) = (unsafe { button_host_view.superview() }) else {
+            return;
+        };
+
+        let close_frame = close_button.frame();
+        let button_host_frame = button_host_view.frame();
+        let mut titlebar_container_frame = titlebar_container_view.frame();
+        titlebar_container_frame.size.height = (button_host_frame.origin.y
+            + close_frame.origin.y
+            + close_frame.size.height
+            + MACOS_TRAFFIC_LIGHT_TOP_INSET)
+            .round()
+            .max(close_frame.size.height);
+        titlebar_container_frame.origin.y =
+            ns_window.frame().size.height - titlebar_container_frame.size.height;
+
+        // SAFETY: This adjusts the native titlebar container view itself so AppKit
+        // has enough vertical space to lay out the standard window buttons lower
+        // inside the full-size-content-view titlebar region.
+        unsafe {
+            titlebar_container_view.setFrame(titlebar_container_frame);
+        }
+
+        let close_x_delta = MACOS_TRAFFIC_LIGHT_LEADING_INSET - close_frame.origin.x;
+        for button_kind in [
+            NSWindowButton::NSWindowCloseButton,
+            NSWindowButton::NSWindowMiniaturizeButton,
+            NSWindowButton::NSWindowZoomButton,
+        ] {
+            let Some(button) = ns_window.standardWindowButton(button_kind) else {
+                continue;
+            };
+
+            let frame = button.frame();
+            let target_origin =
+                NSPoint::new((frame.origin.x + close_x_delta).round(), frame.origin.y);
+
+            // SAFETY: Repositioning AppKit standard window buttons is a main-thread
+            // view mutation scoped to this macOS-only window customization hook.
+            unsafe {
+                button.setFrameOrigin(target_origin);
+            }
+        }
+    })
+    .map(|_| Message::Noop)
+}
+
+#[cfg(not(target_os = "macos"))]
+fn sync_macos_traffic_lights(_window_id: iced::window::Id) -> Task<Message> {
     Task::none()
 }
 

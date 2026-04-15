@@ -81,12 +81,17 @@ pub fn settings() -> window::Settings {
 }
 
 fn use_native_decorations() -> bool {
+    #[cfg(target_os = "macos")]
+    {
+        true
+    }
+
     #[cfg(target_os = "linux")]
     {
         linux_startup_custom_chrome().uses_native_decorations()
     }
 
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(not(any(target_os = "linux", target_os = "macos")))]
     {
         false
     }
@@ -95,6 +100,12 @@ fn use_native_decorations() -> bool {
 fn platform_specific_settings() -> window::settings::PlatformSpecific {
     #[allow(unused_mut)]
     let mut settings = window::settings::PlatformSpecific::default();
+    #[cfg(target_os = "macos")]
+    {
+        settings.title_hidden = true;
+        settings.titlebar_transparent = true;
+        settings.fullsize_content_view = true;
+    }
     #[cfg(target_os = "windows")]
     {
         settings.undecorated_shadow = false;
@@ -104,6 +115,11 @@ fn platform_specific_settings() -> window::settings::PlatformSpecific {
 }
 
 pub fn uses_transparent_surface() -> bool {
+    #[cfg(target_os = "macos")]
+    {
+        false
+    }
+
     #[cfg(target_os = "linux")]
     {
         // `transparent` is fixed at window creation time, so Linux can only use
@@ -112,14 +128,18 @@ pub fn uses_transparent_surface() -> bool {
         linux_startup_custom_chrome().uses_transparent_surface()
     }
 
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(not(any(target_os = "linux", target_os = "macos")))]
     {
         true
     }
 }
 
+pub fn uses_custom_titlebar() -> bool {
+    !cfg!(target_os = "macos")
+}
+
 pub fn uses_custom_resize_overlay() -> bool {
-    true
+    !cfg!(target_os = "macos")
 }
 
 fn load_window_icon() -> Option<window::Icon> {
@@ -256,9 +276,7 @@ fn linux_backend_from_window_handle(
     handle: window::raw_window_handle::RawWindowHandle,
 ) -> Option<LinuxWindowBackend> {
     match handle {
-        window::raw_window_handle::RawWindowHandle::Wayland(_) => {
-            Some(LinuxWindowBackend::Wayland)
-        }
+        window::raw_window_handle::RawWindowHandle::Wayland(_) => Some(LinuxWindowBackend::Wayland),
         window::raw_window_handle::RawWindowHandle::Xcb(_) => Some(LinuxWindowBackend::X11Xcb),
         window::raw_window_handle::RawWindowHandle::Xlib(_) => Some(LinuxWindowBackend::X11Xlib),
         _ => None,
@@ -440,7 +458,10 @@ fn compact_corner_rows(radius: u16) -> Vec<(u16, u16)> {
     let mut last_inset = radius;
 
     for y in 0..radius {
-        let x = (radius as f32 - (radius as f32 * radius as f32 - (radius - 1 - y) as f32 * (radius - 1 - y) as f32).sqrt()).round() as u16;
+        let x = (radius as f32
+            - (radius as f32 * radius as f32 - (radius - 1 - y) as f32 * (radius - 1 - y) as f32)
+                .sqrt())
+        .round() as u16;
         if x == last_inset && !rows.is_empty() {
             rows.last_mut().unwrap().1 += 1;
         } else {

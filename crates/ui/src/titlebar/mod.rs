@@ -1,3 +1,3 @@
 mod view;
 
-pub use view::view;
+pub use view::{macos_overlay_view, view};

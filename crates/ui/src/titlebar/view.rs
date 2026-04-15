@@ -1,4 +1,4 @@
-use iced::widget::{button, column, container, mouse_area, row, text};
+use iced::widget::{Space, button, column, container, mouse_area, row, text};
 use iced::{Alignment, Element, Fill, Font, Length, Padding, Theme, alignment::Horizontal};
 use platform::window::WindowAction;
 
@@ -24,6 +24,11 @@ const TITLEBAR_LOGO_EDGE: f32 = icons::TITLEBAR_LOGO_SLOT - 1.0;
 const TITLEBAR_LOGO_GLYPH: f32 = icons::TITLEBAR_LOGO_GLYPH;
 const TITLEBAR_LOGO_RADIUS: f32 = 9.0;
 const TITLEBAR_DIVIDER_HEIGHT: f32 = 1.0;
+const MACOS_TITLEBAR_HEIGHT: u32 = TITLEBAR_HEIGHT;
+const MACOS_TRAFFIC_LIGHTS_RESERVED_WIDTH: f32 = 88.0;
+const MACOS_SIDE_WIDTH: f32 = TITLEBAR_SIDE_WIDTH;
+const MACOS_TITLEBAR_TOP_PADDING: f32 = 0.0;
+const MACOS_TITLEBAR_BOTTOM_PADDING: f32 = 4.0;
 
 #[derive(Clone, Copy)]
 enum ButtonRole {
@@ -45,50 +50,18 @@ pub fn view<'a, Message>(
 where
     Message: Clone + 'a,
 {
-    let theme_icon = if theme_mode == ThemeMode::Dark {
-        Glyph::Sun
-    } else {
-        Glyph::Moon
-    };
-
-    let language_icon = match app_language {
-        AppLanguage::Chinese | AppLanguage::English => Glyph::Languages,
-    };
-
     let left_tools = side_slot(
-        row![
-            icon_button(theme_mode, theme_icon, on_toggle_theme, ButtonRole::Tool),
-            icon_button(theme_mode, Glyph::Help, on_help, ButtonRole::Tool),
-            icon_button(
-                theme_mode,
-                language_icon,
-                on_toggle_language,
-                ButtonRole::Tool,
-            ),
-        ]
-        .spacing(TITLEBAR_TOOL_SPACING)
-        .align_y(Alignment::Center)
-        .into(),
+        tool_buttons(
+            theme_mode,
+            app_language,
+            on_toggle_theme,
+            on_help,
+            on_toggle_language,
+        ),
         false,
     );
 
-    let center_drag_zone = mouse_area(
-        container(
-            row![
-                logo(),
-                text("LANScanner")
-                    .font(title_font())
-                    .size(TITLE_TEXT_SIZE)
-                    .style(|theme: &Theme| theme::text_primary(theme)),
-            ]
-            .spacing(TITLE_ROW_SPACING)
-            .align_y(Alignment::Center),
-        )
-        .center_x(Fill)
-        .center_y(Fill)
-        .width(Fill),
-    )
-    .on_press(on_window_action(WindowAction::Drag));
+    let center_drag_zone = brand_drag_zone(on_window_action);
 
     let right_controls = side_slot(
         row![
@@ -121,29 +94,69 @@ where
         true,
     );
 
-    container(
-        column![
-            container(
-                row![left_tools, center_drag_zone, right_controls]
-                    .align_y(Alignment::Center)
-                    .height(Fill),
-            )
-            .height(Fill)
-            .padding(Padding {
-                top: 0.0,
-                right: TITLEBAR_HORIZONTAL_PADDING,
-                bottom: 0.0,
-                left: TITLEBAR_HORIZONTAL_PADDING,
-            }),
-            container("")
-                .width(Fill)
-                .height(TITLEBAR_DIVIDER_HEIGHT)
-                .style(crate::theme::styles::titlebar_divider),
-        ]
-        .height(TITLEBAR_HEIGHT),
+    titlebar_shell(
+        left_tools,
+        center_drag_zone,
+        right_controls,
+        radius,
+        TITLEBAR_HEIGHT,
+        Padding {
+            top: 0.0,
+            right: TITLEBAR_HORIZONTAL_PADDING,
+            bottom: 0.0,
+            left: TITLEBAR_HORIZONTAL_PADDING,
+        },
     )
-    .style(move |theme| crate::theme::styles::titlebar_with_radius(theme, radius))
-    .into()
+}
+
+pub fn macos_overlay_view<'a, Message>(
+    theme_mode: ThemeMode,
+    app_language: AppLanguage,
+    on_toggle_theme: Message,
+    on_help: Message,
+    on_toggle_language: Message,
+    on_window_action: impl Fn(WindowAction) -> Message + Copy + 'a,
+    radius: f32,
+) -> Element<'a, Message>
+where
+    Message: Clone + 'a,
+{
+    let leading_traffic_lights_reserve = side_slot_width(
+        Space::new()
+            .width(Length::Fixed(MACOS_TRAFFIC_LIGHTS_RESERVED_WIDTH))
+            .height(Length::Shrink)
+            .into(),
+        false,
+        MACOS_SIDE_WIDTH,
+    );
+
+    let center_drag_zone = brand_drag_zone(on_window_action);
+
+    let trailing_tools = side_slot_width(
+        tool_buttons(
+            theme_mode,
+            app_language,
+            on_toggle_theme,
+            on_help,
+            on_toggle_language,
+        ),
+        true,
+        MACOS_SIDE_WIDTH,
+    );
+
+    titlebar_shell(
+        leading_traffic_lights_reserve,
+        center_drag_zone,
+        trailing_tools,
+        radius,
+        MACOS_TITLEBAR_HEIGHT,
+        Padding {
+            top: MACOS_TITLEBAR_TOP_PADDING,
+            right: TITLEBAR_HORIZONTAL_PADDING,
+            bottom: MACOS_TITLEBAR_BOTTOM_PADDING,
+            left: TITLEBAR_HORIZONTAL_PADDING,
+        },
+    )
 }
 
 fn logo<'a, Message: 'a>() -> Element<'a, Message> {
@@ -167,6 +180,60 @@ fn logo<'a, Message: 'a>() -> Element<'a, Message> {
 
 fn title_font() -> Font {
     fonts::semibold()
+}
+
+fn tool_buttons<'a, Message>(
+    theme_mode: ThemeMode,
+    app_language: AppLanguage,
+    on_toggle_theme: Message,
+    on_help: Message,
+    on_toggle_language: Message,
+) -> Element<'a, Message>
+where
+    Message: Clone + 'a,
+{
+    let theme_icon = theme_toggle_glyph(theme_mode);
+    let language_icon = language_toggle_glyph(app_language);
+
+    row![
+        icon_button(theme_mode, theme_icon, on_toggle_theme, ButtonRole::Tool),
+        icon_button(theme_mode, Glyph::Help, on_help, ButtonRole::Tool),
+        icon_button(
+            theme_mode,
+            language_icon,
+            on_toggle_language,
+            ButtonRole::Tool,
+        ),
+    ]
+    .spacing(TITLEBAR_TOOL_SPACING)
+    .align_y(Alignment::Center)
+    .into()
+}
+
+fn brand_drag_zone<'a, Message>(
+    on_window_action: impl Fn(WindowAction) -> Message + Copy + 'a,
+) -> Element<'a, Message>
+where
+    Message: Clone + 'a,
+{
+    mouse_area(
+        container(
+            row![
+                logo(),
+                text("LANScanner")
+                    .font(title_font())
+                    .size(TITLE_TEXT_SIZE)
+                    .style(|theme: &Theme| theme::text_primary(theme)),
+            ]
+            .spacing(TITLE_ROW_SPACING)
+            .align_y(Alignment::Center),
+        )
+        .center_x(Fill)
+        .center_y(Fill)
+        .width(Fill),
+    )
+    .on_press(on_window_action(WindowAction::Drag))
+    .into()
 }
 
 fn icon_button<'a, Message>(
@@ -238,7 +305,49 @@ where
         .into()
 }
 
+fn titlebar_shell<'a, Message>(
+    left: Element<'a, Message>,
+    center: Element<'a, Message>,
+    right: Element<'a, Message>,
+    radius: f32,
+    height: u32,
+    padding: Padding,
+) -> Element<'a, Message>
+where
+    Message: 'a,
+{
+    container(
+        column![
+            container(
+                row![left, center, right]
+                    .align_y(Alignment::Center)
+                    .height(Fill),
+            )
+            .height(Fill)
+            .padding(padding),
+            container("")
+                .width(Fill)
+                .height(TITLEBAR_DIVIDER_HEIGHT)
+                .style(crate::theme::styles::titlebar_divider),
+        ]
+        .height(height),
+    )
+    .style(move |theme| crate::theme::styles::titlebar_with_radius(theme, radius))
+    .into()
+}
+
 fn side_slot<'a, Message>(content: Element<'a, Message>, trailing: bool) -> Element<'a, Message>
+where
+    Message: 'a,
+{
+    side_slot_width(content, trailing, TITLEBAR_SIDE_WIDTH)
+}
+
+fn side_slot_width<'a, Message>(
+    content: Element<'a, Message>,
+    trailing: bool,
+    width: f32,
+) -> Element<'a, Message>
 where
     Message: 'a,
 {
@@ -265,9 +374,23 @@ where
     };
 
     container(content)
-        .width(Length::Fixed(TITLEBAR_SIDE_WIDTH))
+        .width(Length::Fixed(width))
         .padding(padding)
         .align_x(alignment)
         .center_y(Fill)
         .into()
+}
+
+fn theme_toggle_glyph(theme_mode: ThemeMode) -> Glyph {
+    if theme_mode == ThemeMode::Dark {
+        Glyph::Sun
+    } else {
+        Glyph::Moon
+    }
+}
+
+fn language_toggle_glyph(app_language: AppLanguage) -> Glyph {
+    match app_language {
+        AppLanguage::Chinese | AppLanguage::English => Glyph::Languages,
+    }
 }

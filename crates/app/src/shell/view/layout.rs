@@ -30,16 +30,28 @@ pub(super) fn view(app: &ShellApp) -> Element<'_, Message> {
         0.0
     };
 
-    let header = ui::titlebar::view(
-        app.theme_mode,
-        app.app_language,
-        app.is_window_maximized,
-        Message::ToggleTheme,
-        Message::OpenHelpModal,
-        Message::ToggleLanguage,
-        Message::WindowAction,
-        radius,
-    );
+    let header = if platform::window::uses_custom_titlebar() {
+        ui::titlebar::view(
+            app.theme_mode,
+            app.app_language,
+            app.is_window_maximized,
+            Message::ToggleTheme,
+            Message::OpenHelpModal,
+            Message::ToggleLanguage,
+            Message::WindowAction,
+            radius,
+        )
+    } else {
+        ui::titlebar::macos_overlay_view(
+            app.theme_mode,
+            app.app_language,
+            Message::ToggleTheme,
+            Message::OpenHelpModal,
+            Message::ToggleLanguage,
+            Message::WindowAction,
+            radius,
+        )
+    };
 
     dropdown::render(
         dropdown::DropdownProps {
@@ -295,13 +307,13 @@ pub(super) fn view(app: &ShellApp) -> Element<'_, Message> {
 
                     let shell: Element<'_, Message> =
                         container(column![header, content].height(Fill).spacing(0))
-                        .width(Fill)
-                        .height(Fill)
-                        .clip(true)
-                        .style(move |theme| {
-                            ui::theme::styles::window_shell_with_radius(theme, radius)
-                        })
-                        .into();
+                            .width(Fill)
+                            .height(Fill)
+                            .clip(true)
+                            .style(move |theme| {
+                                ui::theme::styles::window_shell_with_radius(theme, radius)
+                            })
+                            .into();
 
                     let shell: Element<'_, Message> = if app.is_window_maximized
                         || !platform::window::uses_custom_resize_overlay()

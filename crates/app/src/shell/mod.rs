@@ -570,6 +570,13 @@ pub(crate) mod update {
             super::window_impl::handle_linux_window_sync_retry(app, attempt)
         }
 
+        pub(in super::super) fn handle_macos_traffic_lights_sync_retry(
+            app: &super::super::ShellApp,
+            attempt: u8,
+        ) -> iced::Task<crate::message::Message> {
+            super::window_impl::handle_macos_traffic_lights_sync_retry(app, attempt)
+        }
+
         pub(in super::super) fn handle_window_resized(
             app: &mut super::super::ShellApp,
             window_id: iced::window::Id,
@@ -656,6 +663,9 @@ impl ShellApp {
             }
             Message::LinuxWindowSyncRetry(attempt) => {
                 update::window::handle_linux_window_sync_retry(self, attempt)
+            }
+            Message::MacosTrafficLightsSyncRetry(attempt) => {
+                update::window::handle_macos_traffic_lights_sync_retry(self, attempt)
             }
             Message::WindowResized(window_id) => {
                 update::window::handle_window_resized(self, window_id)

@@ -30,6 +30,7 @@ pub enum Message {
     WindowReady(iced::window::Id),
     LinuxWindowRuntimeResolved(LinuxWindowRuntime),
     LinuxWindowSyncRetry(u8),
+    MacosTrafficLightsSyncRetry(u8),
     WindowResized(iced::window::Id),
     WindowMaximizedChanged(bool),
     WindowAction(WindowAction),
