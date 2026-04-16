@@ -43,32 +43,9 @@ pub fn icon() -> Font {
 }
 
 pub fn semibold() -> Font {
-    #[cfg(target_os = "windows")]
-    {
-        // Windows 上优先保证 CJK 可读性，避免权重切换触发不可控 fallback。
-        body()
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        Font {
-            weight: iced::font::Weight::Semibold,
-            ..body()
-        }
-    }
+    body()
 }
 
 pub fn icon_semibold() -> Font {
-    #[cfg(target_os = "windows")]
-    {
-        icon()
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        Font {
-            weight: iced::font::Weight::Semibold,
-            ..icon()
-        }
-    }
+    icon()
 }
