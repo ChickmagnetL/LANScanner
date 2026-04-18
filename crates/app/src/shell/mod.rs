@@ -577,6 +577,12 @@ pub(crate) mod update {
             super::window_impl::handle_macos_traffic_lights_sync_retry(app, attempt)
         }
 
+        pub(in super::super) fn handle_theme_toggled(
+            window_id: Option<iced::window::Id>,
+        ) -> iced::Task<crate::message::Message> {
+            super::window_impl::handle_theme_toggled(window_id)
+        }
+
         pub(in super::super) fn handle_window_resized(
             app: &mut super::super::ShellApp,
             window_id: iced::window::Id,
@@ -641,7 +647,7 @@ impl ShellApp {
             Message::ToggleTheme => {
                 self.close_overlays();
                 self.theme_mode = self.theme_mode.toggle();
-                Task::none()
+                update::window::handle_theme_toggled(self.window_id)
             }
             Message::ToggleLanguage => {
                 self.close_overlays();

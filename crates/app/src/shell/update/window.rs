@@ -24,12 +24,15 @@ pub(super) fn handle_window_ready(
     Task::batch([
         window::is_maximized(window_id).map(Message::WindowMaximizedChanged),
         apply_dwm_border_none(window_id),
-        sync_macos_traffic_lights(window_id),
-        schedule_macos_traffic_lights_sync_retry(0),
+        sync_macos_traffic_lights_with_retry(window_id),
         sync_linux_window_runtime(window_id),
         schedule_linux_window_sync_retry(0),
         visual_check_task,
     ])
+}
+
+pub(super) fn handle_theme_toggled(window_id: Option<iced::window::Id>) -> Task<Message> {
+    window_id.map_or_else(Task::none, sync_macos_traffic_lights_with_retry)
 }
 
 pub(super) fn handle_linux_window_runtime_resolved(
@@ -204,6 +207,13 @@ fn schedule_macos_traffic_lights_sync_retry(attempt: u8) -> Task<Message> {
 #[cfg(not(target_os = "macos"))]
 fn schedule_macos_traffic_lights_sync_retry(_attempt: u8) -> Task<Message> {
     Task::none()
+}
+
+fn sync_macos_traffic_lights_with_retry(window_id: iced::window::Id) -> Task<Message> {
+    Task::batch([
+        sync_macos_traffic_lights(window_id),
+        schedule_macos_traffic_lights_sync_retry(0),
+    ])
 }
 
 #[cfg(target_os = "macos")]
