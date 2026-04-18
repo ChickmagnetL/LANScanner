@@ -156,12 +156,6 @@ where
         ),
     ]
     .spacing(28)
-    .padding(iced::Padding {
-        top: 0.0,
-        right: 12.0,
-        bottom: 0.0,
-        left: 0.0,
-    })
     .width(Fill)
     .into()
 }
@@ -173,8 +167,7 @@ fn rustdesk_steps<'a, Message>(
 where
     Message: Clone + 'a,
 {
-    column![
-        rustdesk_intro(language),
+    let step_cards = column![
         step_card(
             1,
             rustdesk_step_one_description(language),
@@ -186,15 +179,16 @@ where
             rustdesk_quick_connect_preview(language, preview_action.clone()),
         ),
         step_card_text_only(3, rustdesk_step_three_description(language),),
-        rustdesk_troubleshooting_block(language),
     ]
     .spacing(24)
-    .padding(iced::Padding {
-        top: 0.0,
-        right: 12.0,
-        bottom: 0.0,
-        left: 0.0,
-    })
+    .width(Fill);
+
+    column![
+        container(rustdesk_intro(language)).width(Fill),
+        step_cards,
+        container(rustdesk_troubleshooting_block(language)).width(Fill),
+    ]
+    .spacing(24)
     .width(Fill)
     .into()
 }
@@ -306,25 +300,49 @@ fn step_card<'a, Message>(
 where
     Message: Clone + 'a,
 {
-    row![
-        step_badge(index),
-        column![
-            description,
-            container(preview)
-                .width(Fill)
-                .max_width(338.0)
-                .center_x(Fill),
-        ]
-        .spacing(12)
-        .width(Fill),
-    ]
-    .spacing(16)
-    .align_y(Alignment::Start)
-    .width(Fill)
-    .into()
+    step_card_content(index, description, Some(preview))
 }
 
 fn step_card_text_only<'a, Message>(
+    index: u8,
+    description: Element<'a, Message>,
+) -> Element<'a, Message>
+where
+    Message: Clone + 'a,
+{
+    step_card_content(index, description, None)
+}
+
+fn step_card_content<'a, Message>(
+    index: u8,
+    description: Element<'a, Message>,
+    preview: Option<Element<'a, Message>>,
+) -> Element<'a, Message>
+where
+    Message: Clone + 'a,
+{
+    let content = match preview {
+        Some(preview) => column![
+            step_card_description_row(index, description),
+            step_card_preview(preview),
+        ],
+        None => column![step_card_description_row(index, description)],
+    };
+
+    content.spacing(12).width(Fill).into()
+}
+
+fn step_card_preview<'a, Message>(preview: Element<'a, Message>) -> Element<'a, Message>
+where
+    Message: Clone + 'a,
+{
+    container(container(preview).width(Fill).max_width(338.0))
+        .width(Fill)
+        .center_x(Fill)
+        .into()
+}
+
+fn step_card_description_row<'a, Message>(
     index: u8,
     description: Element<'a, Message>,
 ) -> Element<'a, Message>
