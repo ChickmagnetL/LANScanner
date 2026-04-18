@@ -23,6 +23,10 @@ const TITLEBAR_MAXIMIZE_GLYPH: f32 = 14.0;
 const TITLEBAR_LOGO_EDGE: f32 = icons::TITLEBAR_LOGO_SLOT - 1.0;
 const TITLEBAR_LOGO_GLYPH: f32 = icons::TITLEBAR_LOGO_GLYPH;
 const TITLEBAR_LOGO_RADIUS: f32 = 9.0;
+#[cfg(target_os = "linux")]
+const TITLEBAR_LOGO_CUSTOM_GLYPH_OFFSET_X: f32 = TITLEBAR_LOGO_GLYPH * (1.5 / 24.0);
+#[cfg(not(target_os = "linux"))]
+const TITLEBAR_LOGO_CUSTOM_GLYPH_OFFSET_X: f32 = 0.0;
 const TITLEBAR_DIVIDER_HEIGHT: f32 = 1.0;
 const MACOS_TITLEBAR_HEIGHT: u32 = TITLEBAR_HEIGHT;
 const MACOS_TRAFFIC_LIGHTS_RESERVED_WIDTH: f32 = 88.0;
@@ -61,7 +65,7 @@ where
         false,
     );
 
-    let center_drag_zone = brand_drag_zone(on_window_action);
+    let center_drag_zone = brand_drag_zone(on_window_action, TITLEBAR_LOGO_CUSTOM_GLYPH_OFFSET_X);
 
     let right_controls = side_slot(
         row![
@@ -130,7 +134,7 @@ where
         MACOS_SIDE_WIDTH,
     );
 
-    let center_drag_zone = brand_drag_zone(on_window_action);
+    let center_drag_zone = brand_drag_zone(on_window_action, 0.0);
 
     let trailing_tools = side_slot_width(
         tool_buttons(
@@ -159,7 +163,7 @@ where
     )
 }
 
-fn logo<'a, Message: 'a>() -> Element<'a, Message> {
+fn logo<'a, Message: 'a>(icon_offset_x: f32) -> Element<'a, Message> {
     let logo_spec = FrameSpec {
         width: TITLEBAR_LOGO_EDGE,
         height: TITLEBAR_LOGO_EDGE,
@@ -170,12 +174,16 @@ fn logo<'a, Message: 'a>() -> Element<'a, Message> {
         radius: TITLEBAR_LOGO_RADIUS,
     };
 
-    container(icons::titlebar_framed(Glyph::Radar, logo_spec))
-        .width(TITLEBAR_LOGO_EDGE)
-        .height(TITLEBAR_LOGO_EDGE)
-        .center_x(Length::Fixed(TITLEBAR_LOGO_EDGE))
-        .center_y(Length::Fixed(TITLEBAR_LOGO_EDGE))
-        .into()
+    container(icons::titlebar_framed_with_icon_offset(
+        Glyph::Radar,
+        logo_spec,
+        icon_offset_x,
+    ))
+    .width(TITLEBAR_LOGO_EDGE)
+    .height(TITLEBAR_LOGO_EDGE)
+    .center_x(Length::Fixed(TITLEBAR_LOGO_EDGE))
+    .center_y(Length::Fixed(TITLEBAR_LOGO_EDGE))
+    .into()
 }
 
 fn title_font() -> Font {
@@ -212,6 +220,7 @@ where
 
 fn brand_drag_zone<'a, Message>(
     on_window_action: impl Fn(WindowAction) -> Message + Copy + 'a,
+    logo_icon_offset_x: f32,
 ) -> Element<'a, Message>
 where
     Message: Clone + 'a,
@@ -219,7 +228,7 @@ where
     mouse_area(
         container(
             row![
-                logo(),
+                logo(logo_icon_offset_x),
                 text("LANScanner")
                     .font(title_font())
                     .size(TITLE_TEXT_SIZE)

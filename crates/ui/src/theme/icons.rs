@@ -1,5 +1,5 @@
-use iced::widget::container;
-use iced::{Color, Element, Length, Theme, border, widget::svg};
+use iced::widget::{Space, container, row};
+use iced::{Alignment, Color, Element, Length, Theme, border, widget::svg};
 
 use super::colors;
 
@@ -291,6 +291,17 @@ where
     framed(kind, spec)
 }
 
+pub fn titlebar_framed_with_icon_offset<'a, Message>(
+    kind: Glyph,
+    spec: FrameSpec,
+    icon_offset_x: f32,
+) -> Element<'a, Message>
+where
+    Message: 'a,
+{
+    framed_with_icon_offset(kind, spec, icon_offset_x)
+}
+
 pub fn themed_asset_centered<'a, Message>(
     kind: AssetGlyph,
     slot: f32,
@@ -409,6 +420,46 @@ where
     .height(size)
     .center_x(Length::Fixed(size))
     .center_y(Length::Fixed(size))
+    .into()
+}
+
+fn framed_with_icon_offset<'a, Message>(
+    kind: Glyph,
+    spec: FrameSpec,
+    icon_offset_x: f32,
+) -> Element<'a, Message>
+where
+    Message: 'a,
+{
+    let available_width = (spec.width - spec.icon_size).max(0.0);
+    let left_space = (available_width / 2.0 + icon_offset_x).clamp(0.0, available_width);
+    let right_space = available_width - left_space;
+
+    container(
+        row![
+            Space::new()
+                .width(Length::Fixed(left_space))
+                .height(Length::Shrink),
+            glyph(kind, spec.icon_size, spec.tone),
+            Space::new()
+                .width(Length::Fixed(right_space))
+                .height(Length::Shrink),
+        ]
+        .width(Length::Fixed(spec.width))
+        .align_y(Alignment::Center),
+    )
+    .width(spec.width)
+    .height(spec.height)
+    .center_y(Length::Fixed(spec.height))
+    .style(move |_| {
+        container::Style::default()
+            .background(spec.background)
+            .border(iced::Border {
+                color: spec.border_color,
+                width: 1.0,
+                radius: border::radius(spec.radius),
+            })
+    })
     .into()
 }
 
