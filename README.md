@@ -24,7 +24,7 @@ If you are tired of jumping between different command-line tools just to find IP
 - Release overview: https://github.com/ChickmagnetL/LANScanner/releases/latest
 - Windows download: https://github.com/ChickmagnetL/LANScanner/releases/latest/download/LANScanner-windows-x86_64.zip
 - macOS download: [Coming soon...]
-- Linux download: [Coming soon...]
+- Linux download: https://github.com/ChickmagnetL/LANScanner/releases/latest/download/LANScanner-linux-x86_64.AppImage
 
 ---
 
@@ -86,7 +86,7 @@ On the first macOS build, keep Xcode Command Line Tools, `python3`, and `curl` o
 The near-term roadmap currently includes:
 
 - [ ] 🍎 **macOS support**
-- [ ] 🐧 **Linux support**
+- [x] 🐧 **Linux support**
 
 ## Acknowledgments
 
