@@ -185,6 +185,29 @@ fn is_valid_neighbor_ip(ip: &str) -> bool {
 }
 
 fn normalize_neighbor_mac(raw: &str) -> Option<String> {
+    if raw.contains(':') || raw.contains('-') {
+        let parts = raw.split([':', '-']).map(str::trim).collect::<Vec<_>>();
+        if parts.len() != 6 {
+            return None;
+        }
+
+        let mut normalized = String::with_capacity(17);
+        for (index, part) in parts.into_iter().enumerate() {
+            if part.is_empty() || part.len() > 2 || !part.chars().all(|ch| ch.is_ascii_hexdigit()) {
+                return None;
+            }
+            if index > 0 {
+                normalized.push(':');
+            }
+            if part.len() == 1 {
+                normalized.push('0');
+            }
+            normalized.push_str(part);
+        }
+
+        return Some(normalized.to_ascii_uppercase());
+    }
+
     let hex = raw
         .chars()
         .filter(|ch| ch.is_ascii_hexdigit())
@@ -217,4 +240,25 @@ fn trim_neighbor_hostname(host: &str) -> Option<&str> {
         return None;
     }
     Some(host)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_neighbor_mac;
+
+    #[test]
+    fn normalizes_single_digit_macos_mac_segments() {
+        assert_eq!(
+            normalize_neighbor_mac("e4:5f:1:c5:81:11"),
+            Some(String::from("E4:5F:01:C5:81:11"))
+        );
+        assert_eq!(
+            normalize_neighbor_mac("e:a2:4f:13:39:21"),
+            Some(String::from("0E:A2:4F:13:39:21"))
+        );
+        assert_eq!(
+            normalize_neighbor_mac("e8:4a:54:cc:f0:b"),
+            Some(String::from("E8:4A:54:CC:F0:0B"))
+        );
+    }
 }

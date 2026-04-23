@@ -62,6 +62,10 @@ const NEIGHBOR_CANDIDATE_CACHE_PREFIX: &str = "sshscanner-neighbor-candidates";
 const NEIGHBOR_PRIMING_MAX_TARGETS: usize = 256;
 const NEIGHBOR_PRIMING_UDP_PORT: u16 = 33434;
 const NEIGHBOR_PRIMING_TIMEOUT_MS: u64 = 800;
+#[cfg(any(test, target_os = "macos"))]
+const MACOS_NEIGHBOR_SETTLE_INTERVAL_MS: u64 = 200;
+#[cfg(any(test, target_os = "macos"))]
+const MACOS_NEIGHBOR_SETTLE_STABLE_PASSES: usize = 3;
 
 pub fn ensure_registered() {
     static INIT: Once = Once::new();
@@ -111,12 +115,8 @@ pub async fn discover_online_neighbor_candidates(
     let rows = collect_system_neighbor_rows().await;
     let candidates = build_neighbor_candidates(rows, local_ip_addr, subnet_cidr);
     attempt_neighbor_priming(local_ip_addr, subnet_cidr).await;
-    let candidates = refresh_neighbor_candidates_after_priming(
-        candidates,
-        collect_system_neighbor_rows().await,
-        local_ip_addr,
-        subnet_cidr,
-    );
+    let candidates =
+        collect_neighbor_candidates_after_priming(candidates, local_ip_addr, subnet_cidr).await;
     let _ = write_neighbor_candidate_cache(local_ip, subnet, &candidates);
     candidates
 }
@@ -1211,6 +1211,76 @@ fn refresh_neighbor_candidates_after_priming(
         .collect()
 }
 
+async fn collect_neighbor_candidates_after_priming(
+    candidates: Vec<NeighborCandidate>,
+    local_ip: Ipv4Addr,
+    subnet: Ipv4Subnet,
+) -> Vec<NeighborCandidate> {
+    #[cfg(target_os = "macos")]
+    {
+        // macOS updates the ARP table asynchronously after outbound priming.
+        return settle_neighbor_candidates_after_priming(
+            candidates,
+            local_ip,
+            subnet,
+            MACOS_NEIGHBOR_SETTLE_INTERVAL_MS,
+            MACOS_NEIGHBOR_SETTLE_STABLE_PASSES,
+            || collect_system_neighbor_rows(),
+        )
+        .await;
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        refresh_neighbor_candidates_after_priming(
+            candidates,
+            collect_system_neighbor_rows().await,
+            local_ip,
+            subnet,
+        )
+    }
+}
+
+#[cfg(any(test, target_os = "macos"))]
+async fn settle_neighbor_candidates_after_priming<C, Fut>(
+    mut candidates: Vec<NeighborCandidate>,
+    local_ip: Ipv4Addr,
+    subnet: Ipv4Subnet,
+    settle_interval_ms: u64,
+    stable_passes: usize,
+    mut collect_rows: C,
+) -> Vec<NeighborCandidate>
+where
+    C: FnMut() -> Fut,
+    Fut: Future<Output = Vec<NeighborEvidenceRow>>,
+{
+    if stable_passes == 0 {
+        return candidates;
+    }
+
+    let settle_interval = std::time::Duration::from_millis(settle_interval_ms);
+    let mut stable_snapshots = 0usize;
+
+    while stable_snapshots < stable_passes {
+        tokio::time::sleep(settle_interval).await;
+        let previous_count = candidates.len();
+        candidates = refresh_neighbor_candidates_after_priming(
+            candidates,
+            collect_rows().await,
+            local_ip,
+            subnet,
+        );
+
+        if candidates.len() > previous_count {
+            stable_snapshots = 0;
+        } else {
+            stable_snapshots += 1;
+        }
+    }
+
+    candidates
+}
+
 async fn attempt_neighbor_priming(local_ip: Ipv4Addr, subnet: Ipv4Subnet) {
     neighbor_cache::attempt_neighbor_priming(local_ip, subnet).await;
 }
@@ -1523,6 +1593,18 @@ mod tests {
             Some("B8:27:EB:11:22:34")
         );
         assert!(parsed.evidence.hostname.is_none());
+    }
+
+    #[test]
+    fn parses_macos_arp_row_with_single_digit_mac_segments() {
+        let parsed =
+            parse_macos_arp_row("? (192.168.31.170) at e4:5f:1:c5:81:11 on en0 ifscope [ethernet]")
+                .unwrap();
+        assert_eq!(parsed.ip, "192.168.31.170");
+        assert_eq!(
+            parsed.evidence.mac_address.as_deref(),
+            Some("E4:5F:01:C5:81:11")
+        );
     }
 
     #[test]
@@ -1858,6 +1940,146 @@ mod tests {
             candidates[1].evidence.mac_address.as_deref(),
             Some("00:04:4B:11:22:33")
         );
+        assert_eq!(
+            candidates[1].evidence.hostname.as_deref(),
+            Some("desktop-lab")
+        );
+    }
+
+    #[tokio::test]
+    async fn settle_neighbor_candidates_after_priming_waits_for_later_growth() {
+        use std::collections::VecDeque;
+        use std::sync::{Arc, Mutex};
+
+        let local_ip = "192.168.31.8".parse::<Ipv4Addr>().unwrap();
+        let subnet = parse_ipv4_subnet("192.168.31.0/24").unwrap();
+        let initial_candidates = vec![NeighborCandidate {
+            ip: String::from("192.168.31.12"),
+            evidence: NeighborEvidence::new(None, Some(String::from("pi.local")), None),
+        }];
+        let snapshots = Arc::new(Mutex::new(VecDeque::from([
+            vec![NeighborEvidenceRow {
+                ip: String::from("192.168.31.12"),
+                evidence: NeighborEvidence::new(
+                    Some(String::from("B8:27:EB:11:22:33")),
+                    None,
+                    None,
+                ),
+            }],
+            vec![
+                NeighborEvidenceRow {
+                    ip: String::from("192.168.31.12"),
+                    evidence: NeighborEvidence::new(
+                        Some(String::from("B8:27:EB:11:22:33")),
+                        None,
+                        None,
+                    ),
+                },
+                NeighborEvidenceRow {
+                    ip: String::from("192.168.31.44"),
+                    evidence: NeighborEvidence::new(None, Some(String::from("desktop-lab")), None),
+                },
+            ],
+            vec![
+                NeighborEvidenceRow {
+                    ip: String::from("192.168.31.12"),
+                    evidence: NeighborEvidence::new(
+                        Some(String::from("B8:27:EB:11:22:33")),
+                        None,
+                        None,
+                    ),
+                },
+                NeighborEvidenceRow {
+                    ip: String::from("192.168.31.44"),
+                    evidence: NeighborEvidence::new(
+                        Some(String::from("00:04:4B:11:22:33")),
+                        None,
+                        None,
+                    ),
+                },
+            ],
+            Vec::new(),
+        ])));
+
+        let candidates =
+            settle_neighbor_candidates_after_priming(initial_candidates, local_ip, subnet, 0, 2, {
+                let snapshots = Arc::clone(&snapshots);
+                move || {
+                    let snapshots = Arc::clone(&snapshots);
+                    async move { snapshots.lock().unwrap().pop_front().unwrap_or_default() }
+                }
+            })
+            .await;
+
+        let ips = candidates
+            .iter()
+            .map(|candidate| candidate.ip.as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(ips, vec!["192.168.31.12", "192.168.31.44"]);
+        assert_eq!(
+            candidates[0].evidence.mac_address.as_deref(),
+            Some("B8:27:EB:11:22:33")
+        );
+        assert_eq!(
+            candidates[1].evidence.mac_address.as_deref(),
+            Some("00:04:4B:11:22:33")
+        );
+    }
+
+    #[tokio::test]
+    async fn settle_neighbor_candidates_after_priming_keeps_richer_snapshot_when_later_reads_shrink()
+     {
+        use std::collections::VecDeque;
+        use std::sync::{Arc, Mutex};
+
+        let local_ip = "192.168.31.8".parse::<Ipv4Addr>().unwrap();
+        let subnet = parse_ipv4_subnet("192.168.31.0/24").unwrap();
+        let initial_candidates = vec![
+            NeighborCandidate {
+                ip: String::from("192.168.31.12"),
+                evidence: NeighborEvidence::new(
+                    Some(String::from("B8:27:EB:11:22:33")),
+                    Some(String::from("pi.local")),
+                    None,
+                ),
+            },
+            NeighborCandidate {
+                ip: String::from("192.168.31.44"),
+                evidence: NeighborEvidence::new(
+                    Some(String::from("00:04:4B:11:22:33")),
+                    Some(String::from("desktop-lab")),
+                    None,
+                ),
+            },
+        ];
+        let snapshots = Arc::new(Mutex::new(VecDeque::from([
+            Vec::new(),
+            vec![NeighborEvidenceRow {
+                ip: String::from("192.168.31.12"),
+                evidence: NeighborEvidence::new(
+                    Some(String::from("B8:27:EB:11:22:33")),
+                    None,
+                    None,
+                ),
+            }],
+        ])));
+
+        let candidates =
+            settle_neighbor_candidates_after_priming(initial_candidates, local_ip, subnet, 0, 2, {
+                let snapshots = Arc::clone(&snapshots);
+                move || {
+                    let snapshots = Arc::clone(&snapshots);
+                    async move { snapshots.lock().unwrap().pop_front().unwrap_or_default() }
+                }
+            })
+            .await;
+
+        let ips = candidates
+            .iter()
+            .map(|candidate| candidate.ip.as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(ips, vec!["192.168.31.12", "192.168.31.44"]);
+        assert_eq!(candidates[0].evidence.hostname.as_deref(), Some("pi.local"));
         assert_eq!(
             candidates[1].evidence.hostname.as_deref(),
             Some("desktop-lab")
