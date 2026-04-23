@@ -54,7 +54,7 @@ fn launch_vscode_uri(vscode_path: &Path, uri: &str) -> Result<(), LaunchError> {
         Err(LaunchError::Io(error))
     } else {
         Err(LaunchError::Unsupported(String::from(
-            "VS Code 启动入口不可用，请重新选择 Code.exe",
+            "VS Code 启动入口不可用，请重新选择有效的 VS Code 路径",
         )))
     }
 }
@@ -65,10 +65,14 @@ fn spawn_vscode_with_executable(executable: &Path, uri: &str) -> io::Result<()> 
         return spawn_vscode_via_cmd(executable, uri);
     }
 
+    #[cfg(target_os = "macos")]
+    if is_macos_app_bundle_path(executable) {
+        return spawn_vscode_via_open(executable, uri);
+    }
+
     let mut command = Command::new(executable);
     command.arg("--folder-uri").arg(uri);
-    process::hide_console_window(&mut command);
-    command.spawn().map(|_| ())
+    spawn_command(&mut command)
 }
 
 #[cfg(windows)]
@@ -107,7 +111,15 @@ fn should_retry_vscode_spawn(error: &io::Error) -> bool {
         error.kind() == io::ErrorKind::NotFound || matches!(error.raw_os_error(), Some(193 | 2 | 3))
     }
 
-    #[cfg(not(windows))]
+    #[cfg(target_os = "macos")]
+    {
+        matches!(
+            error.kind(),
+            io::ErrorKind::NotFound | io::ErrorKind::PermissionDenied
+        )
+    }
+
+    #[cfg(all(not(windows), not(target_os = "macos")))]
     {
         let _ = error;
         false
@@ -179,9 +191,14 @@ fn vscode_cmd_wrapper_candidate(vscode_path: &Path) -> Option<PathBuf> {
     None
 }
 
-#[cfg(not(windows))]
+#[cfg(all(not(windows), not(target_os = "macos")))]
 fn preferred_vscode_executable(vscode_path: &Path) -> PathBuf {
     vscode_path.to_path_buf()
+}
+
+#[cfg(target_os = "macos")]
+fn preferred_vscode_executable(vscode_path: &Path) -> PathBuf {
+    vscode_bundle_cli_candidate(vscode_path).unwrap_or_else(|| vscode_path.to_path_buf())
 }
 
 #[cfg(windows)]
@@ -199,4 +216,40 @@ fn is_vscode_wrapper_path(path: &Path) -> bool {
     }
 
     extension.is_none() && file_name == "code"
+}
+
+#[cfg(target_os = "macos")]
+fn vscode_bundle_cli_candidate(vscode_path: &Path) -> Option<PathBuf> {
+    if !is_macos_app_bundle_path(vscode_path) {
+        return None;
+    }
+
+    let candidate = vscode_path.join("Contents/Resources/app/bin/code");
+    candidate.is_file().then_some(candidate)
+}
+
+#[cfg(target_os = "macos")]
+fn is_macos_app_bundle_path(path: &Path) -> bool {
+    path.is_dir()
+        && path
+            .extension()
+            .and_then(|value| value.to_str())
+            .is_some_and(|value| value.eq_ignore_ascii_case("app"))
+}
+
+#[cfg(target_os = "macos")]
+fn spawn_vscode_via_open(application_path: &Path, uri: &str) -> io::Result<()> {
+    let mut command = Command::new("open");
+    command
+        .arg("-a")
+        .arg(application_path)
+        .arg("--args")
+        .arg("--folder-uri")
+        .arg(uri);
+    spawn_command(&mut command)
+}
+
+fn spawn_command(command: &mut Command) -> io::Result<()> {
+    process::hide_console_window(command);
+    command.spawn().map(|_| ())
 }

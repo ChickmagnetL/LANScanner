@@ -4,7 +4,7 @@ mod powershell;
 #[cfg(windows)]
 mod vscode_windows;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use ssh_core::credential::store::ToolKind;
 
@@ -21,6 +21,10 @@ pub fn supports_native_tool_picker() -> bool {
     cfg!(windows)
 }
 
+pub fn is_launchable_tool_path(path: &Path) -> bool {
+    discovery::is_launchable_tool_path(path)
+}
+
 pub fn unresolved_tool_path_notice(tool: ToolKind) -> String {
     #[cfg(windows)]
     {
@@ -33,7 +37,16 @@ pub fn unresolved_tool_path_notice(tool: ToolKind) -> String {
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+pub(super) fn non_windows_path_boundary_notice(tool: ToolKind) -> String {
+    format!(
+        "未找到 {} 可执行文件。macOS 目前支持已保存路径、PATH 自动发现，以及 /Applications 或 ~/Applications 下常见 .app 应用包自动发现，暂不提供原生路径选择器。请将 {} 加入 PATH，或在 ~/.lanscanner/config.json 的 app_paths 中预先配置可执行文件或 .app 路径后重试。",
+        tool.label(),
+        tool.label(),
+    )
+}
+
+#[cfg(all(not(windows), not(target_os = "macos")))]
 pub(super) fn non_windows_path_boundary_notice(tool: ToolKind) -> String {
     format!(
         "未找到 {} 可执行文件。Linux/macOS MVP 仅支持已保存路径或 PATH 自动发现，暂不提供原生路径选择器。请将 {} 加入 PATH，或在 ~/.lanscanner/config.json 的 app_paths 中预先配置路径后重试。",
@@ -60,7 +73,20 @@ pub fn find_vscode() -> Option<PathBuf> {
         .and_then(vscode_windows::normalize_windows_vscode_path)
     }
 
-    #[cfg(not(windows))]
+    #[cfg(target_os = "macos")]
+    {
+        discovery::find_tool_with(
+            &["code"],
+            &[],
+            &[],
+            &[
+                "/Applications/Visual Studio Code.app",
+                "~/Applications/Visual Studio Code.app",
+            ],
+        )
+    }
+
+    #[cfg(all(not(windows), not(target_os = "macos")))]
     {
         discovery::find_tool_with(&["code"], &[], &[], &[])
     }
@@ -84,20 +110,36 @@ pub fn find_mobaxterm() -> Option<PathBuf> {
 }
 
 pub fn find_vncviewer() -> Option<PathBuf> {
-    discovery::find_tool_with(
-        &["VNC Viewer", "vncviewer", "vncviewer.exe"],
-        &["vncviewer.exe", "VNCViewer.exe"],
-        &["VNC Viewer", "vncviewer", "vncviewer.exe"],
-        &[
-            r"%PROGRAMFILES%\RealVNC\VNC Viewer\vncviewer.exe",
-            r"%PROGRAMFILES(X86)%\RealVNC\VNC Viewer\vncviewer.exe",
-            r"%PROGRAMFILES%\TightVNC\vncviewer.exe",
-            r"%PROGRAMFILES(X86)%\TightVNC\vncviewer.exe",
-            r"%PROGRAMFILES%\UltraVNC\vncviewer.exe",
-            r"%PROGRAMFILES(X86)%\UltraVNC\vncviewer.exe",
-            r"%LOCALAPPDATA%\Programs\RealVNC\VNC Viewer\vncviewer.exe",
-        ],
-    )
+    #[cfg(target_os = "macos")]
+    {
+        discovery::find_tool_with(
+            &["vncviewer"],
+            &[],
+            &[],
+            &[
+                "/Applications/VNC Viewer.app",
+                "~/Applications/VNC Viewer.app",
+            ],
+        )
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        discovery::find_tool_with(
+            &["VNC Viewer", "vncviewer", "vncviewer.exe"],
+            &["vncviewer.exe", "VNCViewer.exe"],
+            &["VNC Viewer", "vncviewer", "vncviewer.exe"],
+            &[
+                r"%PROGRAMFILES%\RealVNC\VNC Viewer\vncviewer.exe",
+                r"%PROGRAMFILES(X86)%\RealVNC\VNC Viewer\vncviewer.exe",
+                r"%PROGRAMFILES%\TightVNC\vncviewer.exe",
+                r"%PROGRAMFILES(X86)%\TightVNC\vncviewer.exe",
+                r"%PROGRAMFILES%\UltraVNC\vncviewer.exe",
+                r"%PROGRAMFILES(X86)%\UltraVNC\vncviewer.exe",
+                r"%LOCALAPPDATA%\Programs\RealVNC\VNC Viewer\vncviewer.exe",
+            ],
+        )
+    }
 }
 
 pub fn find_rustdesk() -> Option<PathBuf> {
@@ -116,7 +158,17 @@ pub fn find_rustdesk() -> Option<PathBuf> {
         )
     }
 
-    #[cfg(not(windows))]
+    #[cfg(target_os = "macos")]
+    {
+        discovery::find_tool_with(
+            &["rustdesk"],
+            &[],
+            &[],
+            &["/Applications/RustDesk.app", "~/Applications/RustDesk.app"],
+        )
+    }
+
+    #[cfg(all(not(windows), not(target_os = "macos")))]
     {
         discovery::find_tool_with(&["rustdesk"], &[], &[], &[])
     }

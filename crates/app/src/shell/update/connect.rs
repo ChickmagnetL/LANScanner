@@ -564,7 +564,7 @@ fn request_launch(app: &mut ShellApp, action: PendingToolAction) -> Task<Message
 fn resolve_tool_path(app: &ShellApp, tool: ToolKind) -> Option<PathBuf> {
     app.app_paths
         .path_buf_for(tool)
-        .filter(|path| path.is_file())
+        .filter(|path| platform::app_finder::is_launchable_tool_path(path))
         .or_else(|| app_finder::find_tool(tool))
 }
 

@@ -1,3 +1,4 @@
+use std::io;
 use std::path::Path;
 use std::process::Command;
 
@@ -30,8 +31,7 @@ pub fn launch_mobaxterm_ssh(
         }
     }
 
-    process::hide_console_window(&mut command);
-    command.spawn()?;
+    spawn_command(&mut command)?;
     Ok(())
 }
 
@@ -41,10 +41,21 @@ pub fn launch_vncviewer(
     username: Option<&str>,
     password: Option<&str>,
 ) -> Result<VncLaunchOutcome, LaunchError> {
-    let mut command = Command::new(vnc_path);
-    command.arg("-UseAddressBook").arg(ip);
-    process::hide_console_window(&mut command);
-    command.spawn()?;
+    #[cfg(target_os = "macos")]
+    if is_macos_app_bundle_path(vnc_path) {
+        spawn_macos_app_bundle(vnc_path, &["-UseAddressBook", ip])?;
+    } else {
+        let mut command = Command::new(vnc_path);
+        command.arg("-UseAddressBook").arg(ip);
+        spawn_command(&mut command)?;
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        let mut command = Command::new(vnc_path);
+        command.arg("-UseAddressBook").arg(ip);
+        spawn_command(&mut command)?;
+    }
 
     let mut omitted_fields = Vec::new();
     if username.is_some_and(|value| !value.trim().is_empty()) {
@@ -73,13 +84,23 @@ pub fn launch_rustdesk(
 ) -> Result<(), LaunchError> {
     let password = password.map(str::trim).filter(|value| !value.is_empty());
 
+    #[cfg(target_os = "macos")]
+    if is_macos_app_bundle_path(rustdesk_path) {
+        let mut args = vec!["--connect", target];
+        if let Some(password) = password {
+            args.push("--password");
+            args.push(password);
+        }
+        spawn_macos_app_bundle(rustdesk_path, &args)?;
+        return Ok(());
+    }
+
     let mut command = Command::new(rustdesk_path);
     command.arg("--connect").arg(target);
     if let Some(password) = password {
         command.arg("--password").arg(password);
     }
-    process::hide_console_window(&mut command);
-    command.spawn()?;
+    spawn_command(&mut command)?;
     Ok(())
 }
 
@@ -120,4 +141,26 @@ fn mobaxterm_key_argument(key_path: &Path) -> String {
     } else {
         raw
     }
+}
+
+fn spawn_command(command: &mut Command) -> io::Result<()> {
+    process::hide_console_window(command);
+    command.spawn().map(|_| ())
+}
+
+#[cfg(target_os = "macos")]
+fn is_macos_app_bundle_path(path: &Path) -> bool {
+    path.is_dir()
+        && path
+            .extension()
+            .and_then(|value| value.to_str())
+            .is_some_and(|value| value.eq_ignore_ascii_case("app"))
+}
+
+#[cfg(target_os = "macos")]
+fn spawn_macos_app_bundle(application_path: &Path, args: &[&str]) -> io::Result<()> {
+    let mut command = Command::new("open");
+    command.arg("-a").arg(application_path).arg("--args");
+    command.args(args);
+    spawn_command(&mut command)
 }

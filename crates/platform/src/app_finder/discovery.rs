@@ -25,6 +25,10 @@ pub(super) fn find_tool_with(
         .or_else(|| search_common_paths(common_paths))
 }
 
+pub(super) fn is_launchable_tool_path(path: &Path) -> bool {
+    path.is_file() || is_macos_app_bundle(path)
+}
+
 fn search_path(candidates: &[&str]) -> Option<PathBuf> {
     let path = env::var_os("PATH")?;
     let path_exts = windows_path_exts();
@@ -32,14 +36,14 @@ fn search_path(candidates: &[&str]) -> Option<PathBuf> {
     for directory in env::split_paths(&path) {
         for candidate in candidates {
             let joined = directory.join(candidate);
-            if joined.is_file() {
+            if is_launchable_tool_path(&joined) {
                 return Some(joined);
             }
 
             if Path::new(candidate).extension().is_none() {
                 for extension in &path_exts {
                     let joined = directory.join(format!("{candidate}{extension}"));
-                    if joined.is_file() {
+                    if is_launchable_tool_path(&joined) {
                         return Some(joined);
                     }
                 }
@@ -150,8 +154,19 @@ fn search_start_menu_shortcuts(_candidates: &[&str]) -> Option<PathBuf> {
 fn search_common_paths(candidates: &[&str]) -> Option<PathBuf> {
     candidates
         .iter()
-        .map(|candidate| PathBuf::from(expand_windows_env(candidate)))
-        .find(|path| path.is_file())
+        .map(|candidate| expand_common_path(candidate))
+        .find(|path| is_launchable_tool_path(path))
+}
+
+fn expand_common_path(value: &str) -> PathBuf {
+    #[cfg(not(windows))]
+    if let Some(stripped) = value.strip_prefix("~/") {
+        if let Some(home) = env::var_os("HOME") {
+            return PathBuf::from(home).join(stripped);
+        }
+    }
+
+    PathBuf::from(expand_windows_env(value))
 }
 
 fn expand_windows_env(value: &str) -> String {
@@ -184,4 +199,74 @@ fn windows_path_exts() -> Vec<String> {
                 String::from(".bat"),
             ]
         })
+}
+
+#[cfg(target_os = "macos")]
+fn is_macos_app_bundle(path: &Path) -> bool {
+    path.is_dir()
+        && path
+            .extension()
+            .and_then(|value| value.to_str())
+            .is_some_and(|value| value.eq_ignore_ascii_case("app"))
+}
+
+#[cfg(not(target_os = "macos"))]
+fn is_macos_app_bundle(_path: &Path) -> bool {
+    false
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    use super::is_launchable_tool_path;
+
+    #[test]
+    fn launchable_tool_path_accepts_regular_files() {
+        let path = unique_temp_path("tool.bin");
+        fs::write(&path, "binary").unwrap();
+
+        assert!(is_launchable_tool_path(&path));
+
+        cleanup_path(&path);
+    }
+
+    #[test]
+    fn launchable_tool_path_rejects_plain_directories() {
+        let path = unique_temp_path("plain-directory");
+        fs::create_dir_all(&path).unwrap();
+
+        assert!(!is_launchable_tool_path(&path));
+
+        cleanup_path(&path);
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn launchable_tool_path_accepts_app_bundles() {
+        let path = unique_temp_path("Example.app");
+        fs::create_dir_all(&path).unwrap();
+
+        assert!(is_launchable_tool_path(&path));
+
+        cleanup_path(&path);
+    }
+
+    fn unique_temp_path(name: &str) -> PathBuf {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        std::env::temp_dir().join(format!("lanscanner-platform-{nonce}-{name}"))
+    }
+
+    fn cleanup_path(path: &PathBuf) {
+        if path.is_dir() {
+            let _ = fs::remove_dir_all(path);
+        } else {
+            let _ = fs::remove_file(path);
+        }
+    }
 }
