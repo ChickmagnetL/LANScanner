@@ -3,19 +3,25 @@
 </p>
 <h1 align="center"><img src="./picture/lanscanner-readme.png" alt="LANScanner logo" width="55" align="absmiddle" /> LANScanner</h1>
 
-**Your ultimate toolkit for LAN discovery and SSH management.**
+**Discover local network devices, verify SSH connections, and launch VS Code, Terminal, VNC, or RustDesk with a single click.**
 
-Welcome to LANScanner, a powerful, blazing-fast, and elegant network utility built for developers, system administrators, and IT enthusiasts who care deeply about performance and a clean user experience.
+LANScanner is more than just a LAN scanner. It streamlines the process of finding devices, confirming connectivity, and launching them with a familiar tool into a seamless desktop workflow, eliminating the need to manually check IPs, test ports, repeatedly enter credentials, and switch between applications.
 
-If you are tired of jumping between different command-line tools just to find IP addresses, inspect open ports, or manage SSH access, LANScanner solves that problem with an all-in-one graphical interface that keeps your local network workflow under control.
+If you frequently switch between development boards, minicomputers, Raspberry Pis, NAS, or servers, LANScanner helps you quickly identify which machines are online and which can be accessed via SSH. Then, choose a suitable remote access tool for a one-click connection.
 
-### Why LANScanner?
+### Why Choose LANScanner?
 
-- 🚀 **High-speed scanning:** Powered by Rust and the asynchronous networking stack `tokio`, LANScanner can scan your subnet and discover active devices in seconds.
-- 🎨 **Modern and intuitive UI:** Built with `Iced`, it provides a responsive and polished graphical interface that makes network management feel straightforward instead of tedious.
-- 🔐 **Seamless SSH credential management:** Manage SSH credentials directly inside the app and connect to your servers with a single click. No more digging through config files or forgetting passwords.
-- 🐳 **Docker and service detection:** Intelligently detects Docker containers and running services so you can better understand what is actually active on your network.
-- 🛠 **Ready out of the box:** No complex setup required. Launch the app, pick a network interface, and start scanning.
+- 🚀 **One-Click Remote Access:** After scanning for devices, you can directly launch VS Code, Terminal, VNC, or RustDesk within your application without manually copying IP addresses.
+
+- 🔐**Fast Connection After Verification:** After successful SSH credential verification, connections can be initiated directly from within the application, allowing passwordless login to the aforementioned remote software, reducing repetitive input and switching between credentials.
+
+- ⚡**Lightning-Fast Experience:** Built on Rust, both interface feedback and LAN scanning speed remain sleek and smooth.
+
+- 🗂**SSH Credential Management:** Frequently used usernames and passwords can be centrally stored and managed, making connections to multiple devices more efficient.
+
+- 🖥**Easy to Use:** The intuitive layout design makes it easy to understand how to operate the application from the first glance, as if it were innate.
+
+- 🐳**Docker Container Connection:** The application can detect the Docker environment of the target device and supports one-click remote login to Docker containers (via the Vscode Dev Containers extension).
 
 ---
 
@@ -23,7 +29,7 @@ If you are tired of jumping between different command-line tools just to find IP
 
 - Release overview: https://github.com/ChickmagnetL/LANScanner/releases/latest
 - Windows download: https://github.com/ChickmagnetL/LANScanner/releases/latest/download/LANScanner-windows-x86_64.zip
-- macOS download: [Coming soon...]
+- macOS download: https://github.com/ChickmagnetL/LANScanner/releases/latest/download/LANScanner-macos.dmg
 - Linux download: https://github.com/ChickmagnetL/LANScanner/releases/latest/download/LANScanner-linux-x86_64.AppImage
 
 ---
@@ -63,7 +69,7 @@ LANScanner is organized as a modular Cargo workspace so the codebase stays maint
 
 ## 🛠 Build
 
-To simplify the build process, LANScanner uses one-click build scripts instead of a long series of manual commands.
+Users who need to modify the application can use the one-click application build script provided in the project after modifying the code, which greatly simplifies the compilation process.
 
 1. **Clone the repository and enter the project directory:**
 
@@ -75,18 +81,14 @@ To simplify the build process, LANScanner uses one-click build scripts instead o
 2. **Run the build script:**
    All automated build scripts are grouped under `tools/build/`. Use `windows.ps1` on Windows, `macos.sh` on macOS, and `linux.sh` in a Linux environment such as native Linux.
 
-*Note: `tools/build/macos.sh` now produces `release/macos/LANScanner.app` for local unsigned macOS testing, while `tools/build/linux.sh` produces `release/linux/LANScanner-x86_64.AppImage`. Run each artifact on its native host platform.*
-
-On the first macOS build, keep Xcode Command Line Tools, `python3`, and `curl` or `wget` available so the script can derive a temporary `.icns` icon and bootstrap local Rust tooling when needed. On the first Linux build, keep `python3` plus `curl` or `wget` available for the AppImage packaging flow.
-
 ---
 
 ## 🗺 Roadmap
 
 The near-term roadmap currently includes:
 
-- [ ] 🍎 **macOS support**
-- [x] 🐧 **Linux support**
+- [x] **macOS support **
+- [x] **Linux support 🐧**
 
 ## Acknowledgments
 
