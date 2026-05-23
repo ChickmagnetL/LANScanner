@@ -1,95 +1,98 @@
 <p align="center">
-  <a href="./README_CN.md">中文</a> | English
+  中文 | <a href="./README_EN.md">English</a>
 </p>
 <h1 align="center"><img src="./picture/lanscanner-readme.png" alt="LANScanner logo" width="55" align="absmiddle" /> LANScanner</h1>
 
-**Discover local network devices, verify SSH connections, and launch VS Code, Terminal, VNC, or RustDesk with a single click.**
+**发现局域网设备，验证 SSH，并一键打开 VS Code、终端、VNC 或 RustDesk。**
 
-LANScanner is more than just a LAN scanner. It streamlines the process of finding devices, confirming connectivity, and launching them with a familiar tool into a seamless desktop workflow, eliminating the need to manually check IPs, test ports, repeatedly enter credentials, and switch between applications.
+LANScanner 不只是一个局域网扫描器。它把“找设备、确认能不能连、用熟悉的工具打开它”串成一条顺手的桌面流程，省去手动查 IP、试端口、反复输凭据和来回切应用。
 
-If you frequently switch between development boards, minicomputers, Raspberry Pis, NAS, or servers, LANScanner helps you quickly identify which machines are online and which can be accessed via SSH. Then, choose a suitable remote access tool for a one-click connection.
+如果你经常在开发板、小主机、树莓派、NAS 或服务器之间切换，LANScanner 可以帮你更快知道哪台机器在线、哪台可以用 SSH 登录，接下来选一个趁手的远程工具进行一键连接。
 
-### Why Choose LANScanner?
+### 为什么选择 LANScanner？
 
-- 🚀 **One-Click Remote Access:** After scanning for devices, you can directly launch VS Code, Terminal, VNC, or RustDesk within your application without manually copying IP addresses.
+-  🚀 **一键远程：** 扫描到设备后，应用内可直接拉起 VS Code、终端、VNC 或 RustDesk，不用手动复制 IP 地址。
+- 🔐 **验证通过后快速连接：** SSH 凭证验证成功后，可直接从应用内发起连接，免密直接登录上述远程软件，减少重复输入和来回换。
+- ⚡**体验快如闪电：**基于 Rust 构建，无论是界面反馈，还是局域网扫描速度都保持轻快流畅。
+- 🗂 **SSH 凭证管理：**常用用户名、密码可集中保存和管理，连接多台设备时更高效。
+- 🖥 **上手直接：**符合人类直觉的排版设计，打开应用的第一眼就知道如何操作，仿佛天生就会。
+- 🐳 **docker 容器连接：**可检测到目标设备的 docker 环境，支持对 docker 容器的一键远程登录（通过 Vscode 的 Dev Containers扩展）。
 
-- 🔐**Fast Connection After Verification:** After successful SSH credential verification, connections can be initiated directly from within the application, allowing passwordless login to the aforementioned remote software, reducing repetitive input and switching between credentials.
+### 演示
 
-- ⚡**Lightning-Fast Experience:** Built on Rust, both interface feedback and LAN scanning speed remain sleek and smooth.
-
-- 🗂**SSH Credential Management:** Frequently used usernames and passwords can be centrally stored and managed, making connections to multiple devices more efficient.
-
-- 🖥**Easy to Use:** The intuitive layout design makes it easy to understand how to operate the application from the first glance, as if it were innate.
-
-- 🐳**Docker Container Connection:** The application can detect the Docker environment of the target device and supports one-click remote login to Docker containers (via the Vscode Dev Containers extension).
-
----
-
-## Downloads
-
-- Release overview: https://github.com/ChickmagnetL/LANScanner/releases/latest
-- Windows download: https://github.com/ChickmagnetL/LANScanner/releases/latest/download/LANScanner-windows-x86_64.zip
-- macOS download: https://github.com/ChickmagnetL/LANScanner/releases/latest/download/LANScanner-macos.dmg
-- Linux download: https://github.com/ChickmagnetL/LANScanner/releases/latest/download/LANScanner-linux-x86_64.AppImage
+<p align="center">
+  <video src="./picture/Demonstration.mp4" width="640" controls autoplay loop muted />
+</p>
 
 ---
 
-## 🚀 Usage
+## 此处下载
 
-1. **Launch the application.**
-
-2. **Choose a network:** In the "Scan Networks" tab on the left side of the application interface, click the drop-down box and select the network interface you want to scan.
-
-   <p align="center"><img src="./picture/ChooseNetwork_EN.jpg" alt="Choose Network" /></p>
-
-3. **Start scanning:** Click the scan button and watch devices, open ports, and detected services appear in real time.
-
-   <p align="center"><img src="./picture/Scanning_EN.jpg" alt="Scanning" /></p>
-
-4. **Connect to a device:**
-
-   - Enter the username and password in the SSH credential panel on the left, or save SSH usernames and passwords/keys with the built-in credential manager. Then click the SSH credential verification button below.
-   - Click a verified device to view the available quick-launch connection applications.
-   - Click an icon in the right-side panel to open the corresponding application and connect to that device IP immediately.
-
-   <p align="center"><img src="./picture/connect_EN.jpg" alt="Connect" /></p>
+- 下载总览：https://github.com/ChickmagnetL/LANScanner/releases/latest
+- Windows 下载：https://github.com/ChickmagnetL/LANScanner/releases/latest/download/LANScanner-windows-x86_64.zip
+- macOS 下载：https://github.com/ChickmagnetL/LANScanner/releases/latest/download/LANScanner-macos.dmg
+- Linux 下载：https://github.com/ChickmagnetL/LANScanner/releases/latest/download/LANScanner-linux-x86_64.AppImage
 
 ---
 
-## 🏗 Architecture
+## 🚀 使用说明
 
-LANScanner is organized as a modular Cargo workspace so the codebase stays maintainable, responsibilities stay clearly separated, and future expansion remains straightforward. The project is mainly split into the following crates:
+1. **启动应用。**
 
-- **`crates/app`**: The main application entry point and coordinator. It combines business logic with the user interface and handles top-level app state, message routing, and shell integration.
-- **`crates/core`**: The core engine of the application. It contains the heavy lifting for network scanning, SSH protocol handling with `russh`, Docker detection, and credential management. This layer is logic-focused and independent from the UI.
-- **`crates/platform`**: Handles OS-specific integrations and system-level operations, including network interface discovery, launching terminal emulators or external applications, and window/process management.
-- **`crates/ui`**: The presentation layer. It is built entirely with `Iced` and contains reusable widgets, themes, device lists, scan cards, and modal dialogs.
+2. **选择网络：** 在应用界面左侧的扫描网络卡片中，点击下拉框，选择你想要扫描的网络接口。
+
+   <p align="center"><img src="./picture/ChooseNetwork.jpg" alt="Choose Network" /></p>
+
+3. **开始扫描：** 点击扫描按钮。见证设备、开放端口和服务在列表中实时弹出的过程。
+
+   <p align="center"><img src="./picture/Scanning.jpg" alt="Scanning" /></p>
+
+4. **连接设备：**
+
+   - 在左侧 SSH 登录凭证栏填写用户名和密码，或者使用内置的凭据管理器保存 SSH 用户名和密码/密钥。然后点击下方的检测 SSH 凭证。
+   - 点击通过验证的设备，以查看可供使用的快速连接应用选项。
+   - 只需点击一下右侧栏的图标，即可快速打开对应的应用，并连接此 IP 设备。
+
+   <p align="center"><img src="./picture/connect.jpg" alt="Connect" /></p>
 
 ---
 
-## 🛠 Build
+## 🏗 架构说明
 
-Users who need to modify the application can use the one-click application build script provided in the project after modifying the code, which greatly simplifies the compilation process.
+LANScanner 经过精心设计，采用模块化的 Workspace 架构，以确保代码的可维护性、清晰的关注点分离以及未来的可扩展性。项目主要分为以下几个专门的 crate：
 
-1. **Clone the repository and enter the project directory:**
+- **`crates/app`**: 应用程序的主要入口和协调者。它将业务逻辑与用户界面结合在一起，处理主要的应用状态、消息路由和 shell 集成。
+- **`crates/core`**: 应用程序的核心心脏。包含网络扫描、SSH 协议处理 (`russh`)、Docker 检测和凭据管理的所有繁重工作。这部分纯粹由逻辑驱动，与 UI 无关。
+- **`crates/platform`**: 处理特定操作系统的集成和系统级操作。包括查找网络接口、启动终端模拟器或外部应用，以及窗口和进程管理。
+- **`crates/ui`**: 视觉展示层。完全使用 `Iced` 构建，包含可重用的组件（widgets）、主题、设备列表、扫描卡片和模态对话框。
+
+---
+
+## 🛠 构建说明
+
+有需求修改应用的用户，在修改完代码之后可以使用项目里提供的一键构建应用脚本，这种方式极大地简化编译过程。
+
+1. **克隆仓库并进入目录：**
 
    ```bash
    git clone https://github.com/ChickmagnetL/LANScanner.git
    cd LANScanner
    ```
 
-2. **Run the build script:**
-   All automated build scripts are grouped under `tools/build/`. Use `windows.ps1` on Windows, `macos.sh` on macOS, and `linux.sh` in a Linux environment such as native Linux.
+2. **使用构建脚本：**
+   所有自动化构建脚本都统一存放在 `tools/build/` 目录下。Windows 环境使用 `windows.ps1`，macOS 环境使用 `macos.sh`，Linux 环境使用 `linux.sh`。
 
 ---
 
-## 🗺 Roadmap
+## 🗺 未来计划
 
-The near-term roadmap currently includes:
+近期的项目路线图主要包括：
 
-- [x] **macOS support **
-- [x] **Linux support 🐧**
+- [x] **适配 macOS 平台 **
+- [x] **适配 Linux 平台 🐧**
 
-## Acknowledgments
+------
 
-[Linux.Do](https://linux.do/) Community
+## 致谢
+
+[Linux.Do](https://linux.do/) 社区
