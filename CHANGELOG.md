@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2026-04-28
+
+### Added
+
+- macOS one-click build script and app bundle packaging workflow.
+- Native macOS titlebar overlay integration.
+- Branded DMG packaging with staged `LANScanner.app`, `Applications` shortcut layout, and macOS icon asset generation.
+
+### Fixed
+
+- Improved macOS build script compilation reliability.
+- Resynced macOS traffic lights after theme toggles.
+- Improved support for configured or auto-discovered tool paths backed by macOS `.app` bundles.
+
+### Known Issues
+
+- There is no native application for MobaXterm on macOS, and no alternative application capable of quickly connecting in the MobaXterm position has been found yet.
+
 ## [0.2.0] - 2026-04-22
 
 ### Added

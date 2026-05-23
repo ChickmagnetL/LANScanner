@@ -5,7 +5,7 @@ set -euo pipefail
 TARGET_TRIPLE="x86_64-unknown-linux-gnu"
 ARTIFACT_NAME="LANScanner"
 APPIMAGE_ID="lanscanner"
-APPIMAGE_NAME="LANScanner-x86_64.AppImage"
+APPIMAGE_NAME="LANScanner-linux-x86_64.AppImage"
 LINUXDEPLOY_CHANNEL="${LINUXDEPLOY_CHANNEL:-continuous}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

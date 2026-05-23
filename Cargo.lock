@@ -2466,7 +2466,7 @@ dependencies = [
 
 [[package]]
 name = "lanscanner-app"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "iced",
  "image",
@@ -2484,7 +2484,7 @@ dependencies = [
 
 [[package]]
 name = "lanscanner-core"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "ipnet",
  "russh",
@@ -2494,7 +2494,7 @@ dependencies = [
 
 [[package]]
 name = "lanscanner-platform"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "iced",
  "lanscanner-core",
@@ -2506,7 +2506,7 @@ dependencies = [
 
 [[package]]
 name = "lanscanner-ui"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "iced",
  "lanscanner-core",

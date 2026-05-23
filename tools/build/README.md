@@ -83,7 +83,7 @@ Current Linux build behavior:
 - prefers a project-local cargo toolchain when present, otherwise reuses host `cargo`; if `cargo` is missing it can bootstrap Rust into `.build-tools/linux-gnu/local-tools/`
 - bootstraps `linuxdeploy` into `.build-tools/linux-gnu/local-tools/linuxdeploy/` when needed and packages an AppImage
 - stores intermediate artifacts under `.build-tools/linux-gnu/build/`
-- refreshes `release/linux/` on each run and writes only `LANScanner-x86_64.AppImage`
+- refreshes `release/linux/` on each run and writes only `LANScanner-linux-x86_64.AppImage`
 
 Linux usage:
 
@@ -96,7 +96,7 @@ Linux usage:
    ./linux.sh
    ```
 
-4. After a successful build, the Linux release artifact is written to `release/linux/LANScanner-x86_64.AppImage`.
+4. After a successful build, the Linux release artifact is written to `release/linux/LANScanner-linux-x86_64.AppImage`.
 5. Run the artifact in Linux (including WSL2), not as a native Windows executable.
 
 Project-local directories used by the Linux build flow:
@@ -104,4 +104,4 @@ Project-local directories used by the Linux build flow:
 - `.build-tools/linux-gnu/local-tools/`: optional project-local Rust toolchain bootstrap cache and downloads
 - `.build-tools/linux-gnu/local-tools/linuxdeploy/`: cached AppImage packaging tool
 - `.build-tools/linux-gnu/build/`: Cargo target dir and intermediate build artifacts
-- `release/linux/`: final `LANScanner-x86_64.AppImage`
+- `release/linux/`: final `LANScanner-linux-x86_64.AppImage`
