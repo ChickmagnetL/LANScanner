@@ -26,7 +26,7 @@ If you frequently switch between development boards, minicomputers, Raspberry Pi
 ### Demo
 
 <p align="center">
-  <video src="./picture/Demonstration.mp4" width="640" controls autoplay loop muted />
+  <video src="https://github.com/user-attachments/assets/dee520e0-09e3-4d47-910e-ff16eb135f38" controls autoplay loop muted playsinline width="640" />
 </p>
 
 ---

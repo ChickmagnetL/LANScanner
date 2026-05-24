@@ -21,7 +21,7 @@ LANScanner 不只是一个局域网扫描器。它把“找设备、确认能不
 ### 演示
 
 <p align="center">
-  <video src="./picture/Demonstration.mp4" width="640" controls autoplay loop muted />
+  <video src="https://github.com/user-attachments/assets/dee520e0-09e3-4d47-910e-ff16eb135f38" controls autoplay loop muted playsinline width="640" />
 </p>
 
 ---
